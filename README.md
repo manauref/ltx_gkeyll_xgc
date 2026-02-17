@@ -1,6 +1,6 @@
-# Gkeyll & XGC simulations of LTX-betta
+# Gkeyll & XGC simulations of LTX-$\beta$
 
-We compare simulations of the Lithium Tokamak eXperiment beta (LTX-beta) at the Princeton Plasma Physics Laboratory (PPPL) using the Gkeyll and XGC gyrokinetic solvers.
+We compare simulations of the Lithium Tokamak eXperiment $\beta$ (LTX-$\beta$) at the Princeton Plasma Physics Laboratory (PPPL) using the Gkeyll and XGC gyrokinetic solvers.
 
 ## Dependencies
 
