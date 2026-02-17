@@ -13,9 +13,13 @@ import matplotlib.pyplot as plt
 import sys #[ For error exit.
 import h5py #[ For saving reduced data.
 import pgkylUtil as pgu #[ Some postgkyl wrappers.
+#[ Append path to utilities folder.
+sys.path.insert(0, '../util/')
+import ltx_common_util as lcu
 
 #[ Plotting options.
-plot_vs_x = True  #[ Plot a quantity at the outboard midplane.
+plot_vs_x    = False  #[ Plot a quantity at the outboard midplane.
+plot_nT_vs_x = True  #[ Plot density and temperature profiles vs. x.
 
 out_data_dir  = './data/'
 out_fig_dir   = './figures/'
@@ -28,15 +32,6 @@ figure_file_format = '.png'    #[ Can be .png, .pdf, .ps, .eps, .svg.
 sim_name   = 'gk_ltx_iwl_2x2v_p1'      #[ Root name of files to process.
 
 #[ ............... End of user inputs (MAYBE) ..................... ]#
-
-#[ Prefixes in filenames for 863 mg and passivated Li shots.
-li863_prefix = 'li863mg_'
-lipass_prefix = 'liPass_'
-
-eV        = 1.602176487e-19
-me, mp    = 9.10938215e-31, 1.672621637e-27
-charge_elc, charge_ion = -eV, eV
-mass_elc, mass_ion = me, mp
 
 def get_equilibrium_meta(data_dir):
   #[ Return the axis and LCFS psi for a given shot based on the name.
@@ -61,45 +56,6 @@ def get_equilibrium_meta(data_dir):
 
 file_fmt = '.gkyl' #[ Data file format
 poly_order, basis_type = 1, 'ms' #[ Polynomial order and type of basis.
-
-#[ Some RGB colors. These are MATLAB-like.
-default_blue     = [0, 0.4470, 0.7410]
-default_orange   = [0.8500, 0.3250, 0.0980]
-default_green    = [0.4660, 0.6740, 0.1880]
-default_purple   = [0.4940, 0.1840, 0.5560]
-default_red      = [0.6350, 0.0780, 0.1840]
-default_sky_blue = [0.3010, 0.7450, 0.9330]
-grey             = [0.5, 0.5, 0.5]
-#[ Colors in a single array.
-default_colors = [default_blue,default_orange,default_green,default_purple,default_red,default_sky_blue,grey,'black']
-
-#[ LineStyles in a single array.
-default_line_styles = ['-','--',':','-.','None','None','None','None']
-default_markers     = ['None','None','None','None','o','d','s','+']
-
-#[ Some fontsizes used in plots.
-xy_label_font_size       = 17
-title_font_size          = 17
-colorbar_label_font_size = 17
-tick_font_size           = 14
-legend_font_size         = 14
-text_font_size           = 16
-
-#[ Set the font size of the ticks to a given size.
-def set_tick_font_size(axIn,fontSizeIn):
-  axIn.tick_params(axis='both', which='major', labelsize=fontSizeIn)
-
-#[ Normalized poloidal flux coordinate rho.
-def rho_psi(psi, psisep, psi_ax):
-  return np.sqrt((psi - psi_ax) / (psisep - psi_ax))
-
-#[ Flux in terms of normalized poloidal flux rho.
-def psi_rho(rho, psisep, psi_ax):
-  return np.power(rho,2)*(psisep - psi_ax) + psi_ax
-
-#[ Normalized psi.
-def psi_N(psi, psi_lcfs, psi_axis):
-  return (psi - psi_axis) / (psi_lcfs - psi_axis)
 
 #def getInterpDataComp(file, porder, basis, comp_in):
 #  #[ Get a specific component from a multicomponent file.
@@ -145,7 +101,7 @@ if plot_vs_x:
   ylabel     = r'$n_e(\theta=0,t=0)$ (m$^{-3}$)'       #[ Label for y axis.
   frame      = 0                         #[ Frame number.
 
-  fig_file_name_root = li863_prefix+'init_elc_den'
+  fig_file_name_root = lcu.li863_prefix+'init_elc_den'
 
   plotz = 0.0 #[ Computational z coordinate to plot at.
 
@@ -190,7 +146,7 @@ if plot_vs_x:
   spl00_line0_y = data_slice
 
   hpla = list()
-  hpla.append(ax_h[0].plot(spl00_line0_x, spl00_line0_y, color=default_colors[0], linestyle=default_line_styles[0], marker=default_markers[0]))
+  hpla.append(ax_h[0].plot(spl00_line0_x, spl00_line0_y, color=lcu.default_colors[0], linestyle=lcu.default_line_styles[0], marker=lcu.default_markers[0]))
 
   if exp_data_file is not None:
     #[ Plot experimental data.
@@ -200,12 +156,12 @@ if plot_vs_x:
     spl00_line1_x = expdata_x 
     spl00_line1_y = expdata_y
 
-    ax_h[0].plot(spl00_line1_x, spl00_line1_y, linestyle=default_line_styles[1], color='grey')
+    ax_h[0].plot(spl00_line1_x, spl00_line1_y, linestyle=lcu.default_line_styles[1], color='grey')
 
-  ax_h[0].set_xlabel(xlabel, fontsize=xy_label_font_size, labelpad=0)
-  ax_h[0].set_ylabel(ylabel, fontsize=xy_label_font_size)
-  ax_h[0].yaxis.get_offset_text().set_size(tick_font_size)
-  set_tick_font_size(ax_h[0],tick_font_size)
+  ax_h[0].set_xlabel(xlabel, fontsize=lcu.xy_label_font_size, labelpad=0)
+  ax_h[0].set_ylabel(ylabel, fontsize=lcu.xy_label_font_size)
+  ax_h[0].yaxis.get_offset_text().set_size(lcu.tick_font_size)
+  lcu.set_tick_font_size(ax_h[0],lcu.tick_font_size)
   ax_h[0].set_xlim(x_coord[0], x_coord[-1])
 
   if out_figure_file:

@@ -17,7 +17,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import h5py
-from matplotlib.legend_handler import HandlerBase
+import sys #[ For error exit.
+#[ Append path to utilities folder.
+sys.path.insert(0, '../util/')
+import ltx_common_util as lcu
 
 plot_den_omp_init_li863mg = True  #[ Initial n at outboard midplane (OMP) of 863 mg simulation.
 plot_den_temp_omp_final = False  #[ Final n and T profiles at OMP.
@@ -35,66 +38,18 @@ save_data          = True    #[ Indicate whether to save data in plot to HDF5 fi
 
 #[ ............... End of user inputs (MAYBE) ..................... ]#
 
-#[ Prefixes in filenames for 863 mg and passivated Li shots.
-li863_prefix = 'li863mg_'
-lipass_prefix = 'liPass_'
-
-#[ Some RGB colors. These are MATLAB-like.
-default_blue     = [0, 0.4470, 0.7410]
-default_orange   = [0.8500, 0.3250, 0.0980]
-default_green    = [0.4660, 0.6740, 0.1880]
-default_purple   = [0.4940, 0.1840, 0.5560]
-default_red      = [0.6350, 0.0780, 0.1840]
-default_sky_blue = [0.3010, 0.7450, 0.9330]
-grey             = [0.5, 0.5, 0.5]
-#[ Colors in a single array.
-default_colors = [default_blue,default_orange,default_green,default_purple,default_red,default_sky_blue,grey,'black']
-
-#[ LineStyles in a single array.
-default_line_styles = ['-','--',':','-.','None','None','None','None']
-default_markers     = ['None','None','None','None','o','d','s','+']
-
-#[ Some fontsizes used in plots.
-xy_label_font_size       = 17
-title_font_size          = 17
-colorbar_label_font_size = 17
-tick_font_size           = 14
-legend_font_size         = 14
-text_font_size           = 16
-
 #[ Default colors for Gkeyll and XGC.
-gke_color = default_colors[0]
-xgc_color = default_colors[1]
+gke_color = lcu.default_colors[0]
+xgc_color = lcu.default_colors[1]
 #[ Default line styles for Gkeyll and XGC.
-gke_linestyle = default_line_styles[0]
-xgc_linestyle = default_line_styles[1]
-
-def setTickFontSize(axIn,fontSizeIn):
-  #[ Set the font size of the ticks to a given size.
-  axIn.tick_params(axis='both', which='major', labelsize=fontSizeIn)
-
-def h5data_to_numpy_array(h5file_handle, dataset_name):
-  #[ Convert an HDF5 data set to a numpy array.
-  h5dat = h5file_handle[dataset_name] 
-  nparr = np.zeros(h5dat.shape, dtype=h5dat.dtype)
-  h5dat.read_direct(nparr)
-  return nparr
-
-#[ A handler class used for multi-line legends in plots.
-class AnyObjectHandler(HandlerBase):
-  def create_artists(self, legend, orig_handle,
-                     x0, y0, width, height, fontsize, trans):
-    l1 = plt.Line2D([x0,y0+width], [0.7*height,0.7*height],
-                    linestyle=orig_handle[0], marker=orig_handle[1], color=orig_handle[2])
-    l2 = plt.Line2D([x0,y0+width], [0.3*height,0.3*height],
-                    linestyle=orig_handle[3], marker=orig_handle[4], color=orig_handle[5])
-    return [l1, l2]
+gke_linestyle = lcu.default_line_styles[0]
+xgc_linestyle = lcu.default_line_styles[1]
 
 #................................................................................#
 
 if plot_den_omp_init_li863mg:
   #[ Plot radial profiles of density and temperature.
-  fig_name = li863_prefix+'init_elc_den_omp'
+  fig_name = lcu.li863_prefix+'init_elc_den_omp'
 
   gke_data_file = gke_data_dir+'ltx_gkeyll_li863mg_init_elc_den_z1mid.h5'
   xgc_data_file = xgc_data_dir+'ltx_xgc_li863mg_init_elc_den_omp.h5'
@@ -106,13 +61,13 @@ if plot_den_omp_init_li863mg:
   ax_h     = [fig_h.add_axes(pos) for pos in ax_pos]
 
   gke_data = h5py.File(gke_data_file, "r")
-  gke_spl00_line0_x = h5data_to_numpy_array(gke_data, 'subplot00_line0_xvalues')
-  gke_spl00_line0_y = h5data_to_numpy_array(gke_data, 'subplot00_line0_yvalues')
+  gke_spl00_line0_x = lcu.h5data_to_numpy_array(gke_data, 'subplot00_line0_xvalues')
+  gke_spl00_line0_y = lcu.h5data_to_numpy_array(gke_data, 'subplot00_line0_yvalues')
   gke_data.close()
 
   xgc_data = h5py.File(xgc_data_file, "r")
-  xgc_spl00_line0_x = h5data_to_numpy_array(xgc_data, 'subplot00_line0_xvalues')
-  xgc_spl00_line0_y = h5data_to_numpy_array(xgc_data, 'subplot00_line0_yvalues')
+  xgc_spl00_line0_x = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_line0_xvalues')
+  xgc_spl00_line0_y = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_line0_yvalues')
   xgc_data.close()
 
   hpla = list()
@@ -124,15 +79,15 @@ if plot_den_omp_init_li863mg:
   ymin = [min(np.amin(gke_spl00_line0_y),np.amin(xgc_spl00_line0_y)),]
   ymax = [max(np.amax(gke_spl00_line0_y),np.amax(xgc_spl00_line0_y)),]
 
-  ax_h[0].set_ylabel(r'$n_e(\theta=0,t=0)~(\mathrm{m}^{-3})$', fontsize=xy_label_font_size)
+  ax_h[0].set_ylabel(r'$n_e(\theta=0,t=0)~(\mathrm{m}^{-3})$', fontsize=lcu.xy_label_font_size)
   for i in range(len(ax_h)):
-    ax_h[i].set_xlabel(r'$\psi_N$', fontsize=xy_label_font_size, labelpad=-2)
+    ax_h[i].set_xlabel(r'$\psi_N$', fontsize=lcu.xy_label_font_size, labelpad=-2)
     ax_h[i].set_xlim(xmin[i], xmax[i])
     ax_h[i].set_ylim(0., ax_h[i].get_ylim()[1])
-    setTickFontSize(ax_h[0+i],tick_font_size)
-    hmagx = ax_h[i].yaxis.get_offset_text().set_size(tick_font_size)
+    lcu.set_tick_font_size(ax_h[0+i],lcu.tick_font_size)
+    hmagx = ax_h[i].yaxis.get_offset_text().set_size(lcu.tick_font_size)
   # end
-  ax_h[0].legend([hpla[0][0],hpla[1][0]],['Gkeyll','XGC'],fontsize=legend_font_size, frameon=False, loc='upper right')
+  ax_h[0].legend([hpla[0][0],hpla[1][0]],['Gkeyll','XGC'],fontsize=lcu.legend_font_size, frameon=False, loc='upper right')
 
   if output_figure_file:
     fig_file_name = output_prefix+fig_name
@@ -210,7 +165,7 @@ if plot_den_temp_omp_final:
     ax1[i].set_xlabel(r'$\psi_N$', fontsize=xyLabelFontSize, labelpad=-2)
     ax1[i].set_xlim(ymin[i], ymax[i])
     ax1[i].set_ylim(0., ax1[i].get_ylim()[1])
-    setTickFontSize(ax1[0+i],tickFontSize)
+    lcu.set_tick_font_size(ax1[0+i],tickFontSize)
     hmagx = ax1[i].yaxis.get_offset_text().set_size(tickFontSize)
   plt.text(0.82, 0.88, r'(a)', fontsize=textFontSize, color='black', fontweight='regular', transform=ax1[0].transAxes)
   plt.text(0.82, 0.88, r'(b)', fontsize=textFontSize, color='black', fontweight='regular', transform=ax1[1].transAxes)
