@@ -146,7 +146,7 @@ if plot_vs_x:
   plotz = 0.0 #[ Computational z coordinate to plot at.
 
   #[ File with experimental data. Set to None if you don't want to plot exp data.
-  exp_data_file = '/Users/mfrancis/Documents/gkeyll/code/gkyl-sims/ltx/maan_2024_data/Maan_2024-fig2c-li_863mg.csv'
+  exp_data_file = '../experiment/maan_PoP_2024/Maan_2024-fig2c-li_863mg.csv'
   exp_scale_fac = 1.0
 
   file_path = data_dir+sim_name+'-'+quant+'_'+str(frame)+file_fmt
@@ -169,8 +169,8 @@ if plot_vs_x:
     eq_meta = get_equilibrium_meta(data_dir)
     x_coord = psi_N(x_coord, eq_meta["psi_lcfs"], eq_meta["psi_axis"])
     xlabel = r'$\psi_N$'
-    print(f"  rho_min = {x_coord[0]:.9e}")
-    print(f"  rho_max = {x_coord[-1]:.9e}")
+    print(f"  psi_N_min = {x_coord[0]:.9e}")
+    print(f"  psi_N_max = {x_coord[-1]:.9e}")
     if not eq_meta["psi_conv"]:
       x_coord = x_coord[::-1]
       data_slice = data_slice[::-1]
