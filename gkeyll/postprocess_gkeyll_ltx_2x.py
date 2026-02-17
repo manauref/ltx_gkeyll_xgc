@@ -19,7 +19,7 @@ plot_vs_x = True  #[ Plot a quantity at the outboard midplane.
 
 out_data_dir  = './data/'
 out_fig_dir   = './figures/'
-output_prefix = 'ltxb_gkeyll_'
+output_prefix = 'ltx_gkeyll_'
 
 save_data          = True    #[ Indicate whether to save data in plot to HDF5 file.
 out_figure_file    = True     #[ Output a figure file?.
@@ -28,6 +28,10 @@ figure_file_format = '.png'    #[ Can be .png, .pdf, .ps, .eps, .svg.
 sim_name   = 'gk_ltx_iwl_2x2v_p1'      #[ Root name of files to process.
 
 #[ ............... End of user inputs (MAYBE) ..................... ]#
+
+#[ Prefixes in filenames for 863 mg and passivated Li shots.
+li863_prefix = 'li863mg_'
+lipass_prefix = 'liPass_'
 
 eV        = 1.602176487e-19
 me, mp    = 9.10938215e-31, 1.672621637e-27
@@ -141,7 +145,7 @@ if plot_vs_x:
   ylabel     = r'$n_e(\theta=0,t=0)$ (m$^{-3}$)'       #[ Label for y axis.
   frame      = 0                         #[ Frame number.
 
-  fig_file_name_root = 'elc_den'
+  fig_file_name_root = li863_prefix+'init_elc_den'
 
   plotz = 0.0 #[ Computational z coordinate to plot at.
 
