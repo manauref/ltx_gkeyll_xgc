@@ -94,8 +94,8 @@ def psi_rho(rho, psisep, psi_ax):
   return np.power(rho,2)*(psisep - psi_ax) + psi_ax
 
 #[ Normalized psi.
-def psi_N(psi, psisep, psi_ax):
-  return (psi - psi_ax) / (psisep - psi_ax)
+def psi_N(psi, psi_lcfs, psi_axis):
+  return (psi - psi_axis) / (psi_lcfs - psi_axis)
 
 #def getInterpDataComp(file, porder, basis, comp_in):
 #  #[ Get a specific component from a multicomponent file.
@@ -140,6 +140,8 @@ if plot_vs_x:
   scale_fac  = 1.0               #[ Factor to multiply data by.
   ylabel     = r'$n_e(\theta=0,t=0)$ (m$^{-3}$)'       #[ Label for y axis.
   frame      = 0                         #[ Frame number.
+
+  fig_file_name_root = 'elc_den'
 
   plotz = 0.0 #[ Computational z coordinate to plot at.
 
@@ -203,7 +205,6 @@ if plot_vs_x:
   ax_h[0].set_xlim(x_coord[0], x_coord[-1])
 
   if out_figure_file:
-    fig_file_name_root = output_prefix+(file_path.replace(file_fmt,'')).replace(data_dir,'')
     fig_file_suffix = 'z1slice'
     if abs((plotz-z_coord[0])/z_coord[0]) < 1e-5:
       fig_file_suffix = 'z1min'
@@ -212,7 +213,7 @@ if plot_vs_x:
     elif abs((plotz-z_coord[-1])/z_coord[-1]) < 1e-5:
       fig_file_suffix = 'z1max'
 
-    fig_file_name = fig_file_name_root+'_'+fig_file_suffix
+    fig_file_name = output_prefix+fig_file_name_root+'_'+fig_file_suffix
 
     if save_data:
       h5f = h5py.File(out_data_dir+fig_file_name+'.h5', "w")
