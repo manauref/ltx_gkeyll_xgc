@@ -22,8 +22,9 @@ import sys #[ For error exit.
 sys.path.insert(0, '../util/')
 import ltx_common_util as lcu
 
-plot_den_omp_init_li863mg = False  #[ Initial n at outboard midplane (OMP) of 863 mg simulation.
-plot_den_temp_omp_init_li863mg = True  #[ Final n and T profiles at OMP.
+plot_den_omp_init_li863mg       = False  #[ Initial n at outboard midplane (OMP) of 863 mg simulation.
+plot_den_temp_omp_init_li863mg  = False  #[ Initial n and T profiles at OMP.
+plot_den_temp_omp_final_li863mg = True  #[ Final n and T profiles at OMP.
 
 gke_data_dir = '../gkeyll/data/' #[ Location of reduced Gkeyll data.
 xgc_data_dir = '../xgc/data/' #[ Location of reduced XGC data.
@@ -107,12 +108,8 @@ if plot_den_omp_init_li863mg:
 
 #................................................................................#
 
-if plot_den_temp_omp_init_li863mg:
+def plot_den_temp_omp(gke_data_file, xgc_data_file, fig_name, y_labels):
   #[ Plot density and temperature at the OMP.
-  fig_name = lcu.li863_prefix+'init_den_temp_omp'
-
-  gke_data_file = gke_data_dir+'ltx_gkeyll_li863mg_init_den_temp_z1mid.h5'
-  xgc_data_file = xgc_data_dir+'ltx_xgc_li863mg_init_den_temp_omp.h5'
 
   #[ Prepare figure.
   fig_prop = (12., 3.6)
@@ -167,7 +164,6 @@ if plot_den_temp_omp_init_li863mg:
     max(np.amax(gke_spl02_line0_y),np.amax(xgc_spl02_line0_y)),
   ]
 
-  y_labels = [r'$n_e(\theta=0,t=0)$ (m$^{-3}$)', r'$T_e(\theta=0,t=0)$ (eV)', r'$T_i(\theta=0,t=0)$ (eV)',]
   for i in range(len(ax_h)):
     ax_h[i].set_xlabel(r'$\psi_N$', fontsize=lcu.xy_label_font_size, labelpad=0)
     ax_h[i].set_ylabel(y_labels[i], fontsize=lcu.xy_label_font_size)
@@ -205,6 +201,32 @@ if plot_den_temp_omp_init_li863mg:
     plt.close()
   else:
     plt.show()
+
+if plot_den_temp_omp_init_li863mg:
+  #[ Plot initial density and temperature at the OMP.
+  fig_name = lcu.li863_prefix+'init_den_temp_omp'
+  y_labels = [r'$n_e(\theta=0,t=0)$ (m$^{-3}$)', r'$T_e(\theta=0,t=0)$ (eV)', r'$T_i(\theta=0,t=0)$ (eV)',]
+
+  gke_data_file = gke_data_dir+'ltx_gkeyll_li863mg_init_den_temp_z1mid.h5'
+  xgc_data_file = xgc_data_dir+'ltx_xgc_li863mg_init_den_temp_omp.h5'
+
+  plot_den_temp_omp(gke_data_file, xgc_data_file, fig_name, y_labels)
+
+#................................................................................#
+
+if plot_den_temp_omp_final_li863mg:
+  #[ Plot final density and temperature at the OMP.
+  fig_name = lcu.li863_prefix+'final_den_temp_omp'
+  y_labels = [
+    r'$n_e(\theta=0,t=4~\mathrm{ms})$ (m$^{-3}$)',
+    r'$T_e(\theta=0,t=4~\mathrm{ms})$ (eV)',
+    r'$T_i(\theta=0,t=4~\mathrm{ms})$ (eV)',
+  ]
+
+  gke_data_file = gke_data_dir+'ltx_gkeyll_li863mg_final_den_temp_z1mid.h5'
+  xgc_data_file = xgc_data_dir+'ltx_xgc_li863mg_final_den_temp_omp.h5'
+
+  plot_den_temp_omp(gke_data_file, xgc_data_file, fig_name, y_labels)
 
 #................................................................................#
 
