@@ -28,8 +28,8 @@ out_data_dir  = './data/'
 out_fig_dir   = './figures/'
 output_prefix = 'ltx_gkeyll_'
 
-save_data          = True    #[ Indicate whether to save data in plot to HDF5 file.
-out_figure_file    = True     #[ Output a figure file?.
+save_data          = False    #[ Indicate whether to save data in plot to HDF5 file.
+out_figure_file    = False     #[ Output a figure file?.
 figure_file_format = '.png'    #[ Can be .png, .pdf, .ps, .eps, .svg.
 
 sim_name   = 'gk_ltx_iwl_2x2v_p1'      #[ Root name of files to process.
@@ -283,14 +283,19 @@ if plot_vs_x:
 if plot_nT_vs_x:
   #[ Plot density and temperature vs x:
 
-  data_dir = '/Users/mfrancis/Documents/gkeyll/code/gkyl-sims/ltx/sim_data/numerical_eq/2x/li_863mg_103955_03/gn0/'
+  data_dir = '/pscratch/sd/m/mana/gkeyll/ltx/2d/gn0_103955_03/'
 
   x_axis_psi_N = True #[ Whether to put x-axis in rho_pol.
   plot_exp_data = True #[ Whether to plot experimental data.
   
-  frame = 0   #[ Frame number.
+  frame = 80   #[ Frame number.
+  y_labels = [
+    r'$n_e(\theta=0,t=4~\mathrm{ms})$ (m$^{-3}$)',
+    r'$T_e(\theta=0,t=4~\mathrm{ms})$ (eV)',
+    r'$T_i(\theta=0,t=4~\mathrm{ms})$ (eV)',
+  ]
 
-  fig_file_name_root = lcu.li863_prefix+'init_den_temp'
+  fig_file_name_root = lcu.li863_prefix+'final_den_temp'
 
   plotz = 0.0 #[ Computational z coordinate to plot at.
 
@@ -368,7 +373,6 @@ if plot_nT_vs_x:
     ax_h[1].plot(spl01_line1_x, spl01_line1_y, linestyle=lcu.default_line_styles[1], color='grey')
   #end
 
-  y_labels = [r'$n_e(\theta=0,t=0)$ (m$^{-3}$)', r'$T_e(\theta=0,t=0)$ (eV)', r'$T_i(\theta=0,t=0)$ (eV)',]
   for i in range(len(ax_h)):
     ax_h[i].set_xlabel(xlabel, fontsize=lcu.xy_label_font_size, labelpad=0)
     ax_h[i].set_ylabel(y_labels[i], fontsize=lcu.xy_label_font_size)
