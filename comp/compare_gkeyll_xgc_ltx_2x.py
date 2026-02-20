@@ -17,13 +17,15 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import h5py
+from matplotlib.collections import LineCollection #[ For plotting edges.
 import sys #[ For error exit.
 #[ Append path to utilities folder.
 sys.path.insert(0, '../util/')
 import ltx_common_util as lcu
 
+plot_grids_RZ_li863mg           = True  #[ Grids on the R-Z plane of 863 mg simulation.
 plot_den_omp_init_li863mg       = False  #[ Initial n at outboard midplane (OMP) of 863 mg simulation.
-plot_den_temp_omp_init_li863mg  = True  #[ Initial n and T profiles at OMP.
+plot_den_temp_omp_init_li863mg  = False  #[ Initial n and T profiles at OMP.
 plot_den_temp_omp_final_li863mg = False  #[ Final n and T profiles at OMP.
 
 gke_data_dir = '../gkeyll/data/' #[ Location of reduced Gkeyll data.
@@ -37,6 +39,9 @@ output_figure_file = False     #[ Output a figure file?.
 figure_file_format = '.png'    #[ Can be .png, .pdf, .ps, .eps, .svg.
 save_data          = False    #[ Indicate whether to save data in plot to HDF5 file.
 
+#[ Vacuum vessel wall coordinates.
+ltx_vv_file = '/Users/mfrancis/Documents/gkeyll/code/gkyl-sims/ltx/sim_data/ltx_gkeyll_xgc/experiment/LTXvessel.csv'  
+
 #[ ............... End of user inputs (MAYBE) ..................... ]#
 
 #[ Default colors for Gkeyll and XGC.
@@ -45,6 +50,107 @@ xgc_color = lcu.default_colors[1]
 #[ Default line styles for Gkeyll and XGC.
 gke_linestyle = lcu.default_line_styles[0]
 xgc_linestyle = lcu.default_line_styles[1]
+
+#................................................................................#
+
+if plot_grids_RZ_li863mg:
+  #[ Plot R-Z grids for the 863 mg Li simulations.
+  fig_name = lcu.li863_prefix+'grids_RZ'
+
+  nodes_color = "black" #[ Color for cell nodes.
+  edges_color = lcu.default_blue #[ Color for cell edges.
+  wall_color = "grey" #[ Color for the wall
+
+  gke_data_file = gke_data_dir+'ltx_gkeyll_li863mg_grid_RZ.h5'
+  xgc_data_file = xgc_data_dir+'ltx_xgc_li863mg_grid_RZ.h5'
+
+  #[ Load Gkeyll nodes, edges and psi.
+  gke_data = h5py.File(gke_data_file, "r")
+  gke_spl00_nodes_x      = lcu.h5data_to_numpy_array(gke_data, 'subplot00_nodes_xvalues')
+  gke_spl00_nodes_y      = lcu.h5data_to_numpy_array(gke_data, 'subplot00_nodes_yvalues')
+  gke_spl00_edges_constx = lcu.h5data_to_numpy_array(gke_data, 'subplot00_edges_constx')
+  gke_spl00_edges_consty = lcu.h5data_to_numpy_array(gke_data, 'subplot00_edges_consty')
+  gke_spl00_psi_x        = lcu.h5data_to_numpy_array(gke_data, 'subplot00_psi_xvalues')
+  gke_spl00_psi_y        = lcu.h5data_to_numpy_array(gke_data, 'subplot00_psi_yvalues')
+  gke_spl00_psi_z        = lcu.h5data_to_numpy_array(gke_data, 'subplot00_psi_zvalues')
+  gke_data.close()
+
+  #[ Load XGC nodes, edges and psi.
+  xgc_data = h5py.File(xgc_data_file, "r")
+  xgc_spl00_nodes_x      = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_nodes_xvalues')
+  xgc_spl00_nodes_y      = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_nodes_yvalues')
+  xgc_spl00_edges_constx = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_edges_constx')
+  xgc_spl00_edges_consty = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_edges_consty')
+  xgc_spl00_psi_x        = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_psi_xvalues')
+  xgc_spl00_psi_y        = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_psi_yvalues')
+  xgc_spl00_psi_z        = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_psi_zvalues')
+  xgc_data.close()
+
+  #[ Load wall coordinates.
+  wall_data = np.loadtxt(open(ltx_vv_file),delimiter=',')
+  wall_x = wall_data[:,0]
+  wall_y = wall_data[:,1]
+
+  #[ Prepare figure.
+  fig_prop = (10.0, 8.)
+  ax_pos   = [[0.1, 0.1, 0.4, 0.82],[0.58, 0.1, 0.4, 0.82]]
+  fig_h    = plt.figure(figsize=fig_prop)
+  ax_h     = [fig_h.add_axes(pos) for pos in ax_pos]
+
+  #[ Plot Gkeyll nodes, edges and psi.
+  hpla = list()
+  hpla.append(ax_h[0].plot(gke_spl00_nodes_x,gke_spl00_nodes_y,marker=".", color=nodes_color, linestyle="none"))
+  hpla.append(ax_h[0].add_collection(LineCollection(gke_spl00_edges_constx, color=edges_color)))
+  hpla.append(ax_h[0].add_collection(LineCollection(gke_spl00_edges_consty, color=edges_color)))
+  hpla.append(ax_h[0].contour(gke_spl00_psi_x, gke_spl00_psi_y, gke_spl00_psi_z))
+  plt.text(0.06, 0.93, r'(a) Gkeyll', fontsize=16, color='black', transform=ax_h[0].transAxes)
+
+  #[ Plot XGC nodes, edges and psi.
+  hplb = list()
+  hplb.append(ax_h[1].plot(xgc_spl00_nodes_x,xgc_spl00_nodes_y,marker=".", color=nodes_color, linestyle="none"))
+  hplb.append(ax_h[1].add_collection(LineCollection(xgc_spl00_edges_constx, color=edges_color)))
+  hplb.append(ax_h[1].add_collection(LineCollection(xgc_spl00_edges_consty, color=edges_color)))
+  hplb.append(ax_h[1].contour(xgc_spl00_psi_x, xgc_spl00_psi_y, xgc_spl00_psi_z))
+  plt.text(0.06, 0.93, r'(b) XGC', fontsize=16, color='black', transform=ax_h[1].transAxes)
+
+  ax_h[0].set_ylabel(r'Z (m)', fontsize=lcu.xy_label_font_size)
+  wall_h = list()
+  for i in range(len(ax_h)):
+    ax_h[i].set_aspect('equal')
+    ax_h[i].set_xlabel(r'R (m)', fontsize=lcu.xy_label_font_size, labelpad=-2)
+    lcu.set_tick_font_size(ax_h[i],lcu.tick_font_size)
+    wall_h.append(ax_h[i].plot(wall_x,wall_y,color=wall_color))
+  # end
+
+  if output_figure_file:
+    fig_file_name = output_prefix+fig_name
+
+    if save_data:
+      h5f = h5py.File(out_data_dir+fig_file_name+'.h5', "w")
+      h5f.create_dataset('subplot00_gke_nodes_xvalues', np.shape(gke_spl00_nodes_x     ), dtype='f8', data=gke_spl00_nodes_x     )
+      h5f.create_dataset('subplot00_gke_nodes_yvalues', np.shape(gke_spl00_nodes_y     ), dtype='f8', data=gke_spl00_nodes_y     )
+      h5f.create_dataset('subplot00_gke_edges_constx' , np.shape(gke_spl00_edges_constx), dtype='f8', data=gke_spl00_edges_constx)
+      h5f.create_dataset('subplot00_gke_edges_consty' , np.shape(gke_spl00_edges_consty), dtype='f8', data=gke_spl00_edges_consty)
+      h5f.create_dataset('subplot00_gke_psi_xvalues'  , np.shape(gke_spl00_psi_x       ), dtype='f8', data=gke_spl00_psi_x       )
+      h5f.create_dataset('subplot00_gke_psi_yvalues'  , np.shape(gke_spl00_psi_y       ), dtype='f8', data=gke_spl00_psi_y       )
+      h5f.create_dataset('subplot00_gke_psi_zvalues'  , np.shape(gke_spl00_psi_z       ), dtype='f8', data=gke_spl00_psi_z       )
+      h5f.create_dataset('subplot00_wall_xvalues'     , np.shape(wall_x), dtype='f8', data=wall_x)
+      h5f.create_dataset('subplot00_wall_yvalues'     , np.shape(wall_y), dtype='f8', data=wall_y)
+      h5f.create_dataset('subplot01_xgc_nodes_xvalues', np.shape(xgc_spl00_nodes_x     ), dtype='f8', data=xgc_spl00_nodes_x     )
+      h5f.create_dataset('subplot01_xgc_nodes_yvalues', np.shape(xgc_spl00_nodes_y     ), dtype='f8', data=xgc_spl00_nodes_y     )
+      h5f.create_dataset('subplot01_xgc_edges_constx' , np.shape(xgc_spl00_edges_constx), dtype='f8', data=xgc_spl00_edges_constx)
+      h5f.create_dataset('subplot01_xgc_edges_consty' , np.shape(xgc_spl00_edges_consty), dtype='f8', data=xgc_spl00_edges_consty)
+      h5f.create_dataset('subplot01_xgc_psi_xvalues'  , np.shape(xgc_spl00_psi_x       ), dtype='f8', data=xgc_spl00_psi_x       )
+      h5f.create_dataset('subplot01_xgc_psi_yvalues'  , np.shape(xgc_spl00_psi_y       ), dtype='f8', data=xgc_spl00_psi_y       )
+      h5f.create_dataset('subplot01_xgc_psi_zvalues'  , np.shape(xgc_spl00_psi_z       ), dtype='f8', data=xgc_spl00_psi_z       )
+      h5f.create_dataset('subplot01_wall_xvalues'     , np.shape(wall_x), dtype='f8', data=wall_x)
+      h5f.create_dataset('subplot01_wall_yvalues'     , np.shape(wall_y), dtype='f8', data=wall_y)
+      h5f.close()
+
+    fig_h.savefig(out_fig_dir+fig_file_name+figure_file_format)
+    plt.close()
+  else:
+    plt.show()
 
 #................................................................................#
 
@@ -95,10 +201,10 @@ if plot_den_omp_init_li863mg:
 
     if save_data:
       h5f = h5py.File(out_data_dir+fig_file_name+'.h5', "w")
-      h5f.create_dataset('gke_subplot00_line0_xvalues', np.shape(gke_spl00_line0_x), dtype='f8', data=gke_spl00_line0_x)
-      h5f.create_dataset('gke_subplot00_line0_yvalues', np.shape(gke_spl00_line0_y), dtype='f8', data=gke_spl00_line0_y)
-      h5f.create_dataset('xgc_subplot00_line0_xvalues', np.shape(xgc_spl00_line0_x), dtype='f8', data=xgc_spl00_line0_x)
-      h5f.create_dataset('xgc_subplot00_line0_yvalues', np.shape(xgc_spl00_line0_y), dtype='f8', data=xgc_spl00_line0_y)
+      h5f.create_dataset('subplot00_gke_line0_xvalues', np.shape(gke_spl00_line0_x), dtype='f8', data=gke_spl00_line0_x)
+      h5f.create_dataset('subplot00_gke_line0_yvalues', np.shape(gke_spl00_line0_y), dtype='f8', data=gke_spl00_line0_y)
+      h5f.create_dataset('subplot00_xgc_line0_xvalues', np.shape(xgc_spl00_line0_x), dtype='f8', data=xgc_spl00_line0_x)
+      h5f.create_dataset('subplot00_xgc_line0_yvalues', np.shape(xgc_spl00_line0_y), dtype='f8', data=xgc_spl00_line0_y)
       h5f.close()
 
     fig_h.savefig(out_fig_dir+fig_file_name+figure_file_format)
@@ -181,20 +287,20 @@ def plot_den_temp_omp(gke_data_file, xgc_data_file, fig_name, y_labels):
 
     if save_data:
       h5f = h5py.File(out_data_dir+fig_file_name+'.h5', "w")
-      h5f.create_dataset('gke_subplot00_line0_xvalues', np.shape(gke_spl00_line0_x), dtype='f8', data=gke_spl00_line0_x)
-      h5f.create_dataset('gke_subplot00_line0_yvalues', np.shape(gke_spl00_line0_y), dtype='f8', data=gke_spl00_line0_y)
-      h5f.create_dataset('xgc_subplot00_line0_xvalues', np.shape(xgc_spl00_line0_x), dtype='f8', data=xgc_spl00_line0_x)
-      h5f.create_dataset('xgc_subplot00_line0_yvalues', np.shape(xgc_spl00_line0_y), dtype='f8', data=xgc_spl00_line0_y)
-
-      h5f.create_dataset('gke_subplot01_line0_xvalues', np.shape(gke_spl01_line0_x), dtype='f8', data=gke_spl01_line0_x)
-      h5f.create_dataset('gke_subplot01_line0_yvalues', np.shape(gke_spl01_line0_y), dtype='f8', data=gke_spl01_line0_y)
-      h5f.create_dataset('xgc_subplot01_line0_xvalues', np.shape(xgc_spl01_line0_x), dtype='f8', data=xgc_spl01_line0_x)
-      h5f.create_dataset('xgc_subplot01_line0_yvalues', np.shape(xgc_spl01_line0_y), dtype='f8', data=xgc_spl01_line0_y)
-
-      h5f.create_dataset('gke_subplot02_line0_xvalues', np.shape(gke_spl02_line0_x), dtype='f8', data=gke_spl02_line0_x)
-      h5f.create_dataset('gke_subplot02_line0_yvalues', np.shape(gke_spl02_line0_y), dtype='f8', data=gke_spl02_line0_y)
-      h5f.create_dataset('xgc_subplot02_line0_xvalues', np.shape(xgc_spl02_line0_x), dtype='f8', data=xgc_spl02_line0_x)
-      h5f.create_dataset('xgc_subplot02_line0_yvalues', np.shape(xgc_spl02_line0_y), dtype='f8', data=xgc_spl02_line0_y)
+      h5f.create_dataset('subplot00_gke_line0_xvalues', np.shape(gke_spl00_line0_x), dtype='f8', data=gke_spl00_line0_x)
+      h5f.create_dataset('subplot00_gke_line0_yvalues', np.shape(gke_spl00_line0_y), dtype='f8', data=gke_spl00_line0_y)
+      h5f.create_dataset('subplot00_xgc_line0_xvalues', np.shape(xgc_spl00_line0_x), dtype='f8', data=xgc_spl00_line0_x)
+      h5f.create_dataset('subplot00_xgc_line0_yvalues', np.shape(xgc_spl00_line0_y), dtype='f8', data=xgc_spl00_line0_y)
+                                        
+      h5f.create_dataset('subplot01_gke_line0_xvalues', np.shape(gke_spl01_line0_x), dtype='f8', data=gke_spl01_line0_x)
+      h5f.create_dataset('subplot01_gke_line0_yvalues', np.shape(gke_spl01_line0_y), dtype='f8', data=gke_spl01_line0_y)
+      h5f.create_dataset('subplot01_xgc_line0_xvalues', np.shape(xgc_spl01_line0_x), dtype='f8', data=xgc_spl01_line0_x)
+      h5f.create_dataset('subplot01_xgc_line0_yvalues', np.shape(xgc_spl01_line0_y), dtype='f8', data=xgc_spl01_line0_y)
+                                        
+      h5f.create_dataset('subplot02_gke_line0_xvalues', np.shape(gke_spl02_line0_x), dtype='f8', data=gke_spl02_line0_x)
+      h5f.create_dataset('subplot02_gke_line0_yvalues', np.shape(gke_spl02_line0_y), dtype='f8', data=gke_spl02_line0_y)
+      h5f.create_dataset('subplot02_xgc_line0_xvalues', np.shape(xgc_spl02_line0_x), dtype='f8', data=xgc_spl02_line0_x)
+      h5f.create_dataset('subplot02_xgc_line0_yvalues', np.shape(xgc_spl02_line0_y), dtype='f8', data=xgc_spl02_line0_y)
       h5f.close()
 
     fig_h.savefig(out_fig_dir+fig_file_name+figure_file_format)
