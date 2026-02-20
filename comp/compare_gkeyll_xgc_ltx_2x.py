@@ -23,8 +23,8 @@ sys.path.insert(0, '../util/')
 import ltx_common_util as lcu
 
 plot_den_omp_init_li863mg       = False  #[ Initial n at outboard midplane (OMP) of 863 mg simulation.
-plot_den_temp_omp_init_li863mg  = False  #[ Initial n and T profiles at OMP.
-plot_den_temp_omp_final_li863mg = True  #[ Final n and T profiles at OMP.
+plot_den_temp_omp_init_li863mg  = True  #[ Initial n and T profiles at OMP.
+plot_den_temp_omp_final_li863mg = False  #[ Final n and T profiles at OMP.
 
 gke_data_dir = '../gkeyll/data/' #[ Location of reduced Gkeyll data.
 xgc_data_dir = '../xgc/data/' #[ Location of reduced XGC data.
@@ -208,7 +208,8 @@ if plot_den_temp_omp_init_li863mg:
   y_labels = [r'$n_e(\theta=0,t=0)$ (m$^{-3}$)', r'$T_e(\theta=0,t=0)$ (eV)', r'$T_i(\theta=0,t=0)$ (eV)',]
 
   gke_data_file = gke_data_dir+'ltx_gkeyll_li863mg_init_den_temp_z1mid.h5'
-  xgc_data_file = xgc_data_dir+'ltx_xgc_li863mg_init_den_temp_omp.h5'
+  #xgc_data_file = xgc_data_dir+'ltx_xgc_li863mg_init_den_temp_omp.h5'
+  xgc_data_file = xgc_data_dir+'ltx103955-04_v0_xgc_init_moments_omp.h5'
 
   plot_den_temp_omp(gke_data_file, xgc_data_file, fig_name, y_labels)
 
@@ -224,7 +225,8 @@ if plot_den_temp_omp_final_li863mg:
   ]
 
   gke_data_file = gke_data_dir+'ltx_gkeyll_li863mg_final_den_temp_z1mid.h5'
-  xgc_data_file = xgc_data_dir+'ltx_xgc_li863mg_final_den_temp_omp.h5'
+#  xgc_data_file = xgc_data_dir+'ltx_xgc_li863mg_final_den_temp_omp.h5'
+  xgc_data_file = xgc_data_dir+'ltx103955-04_v0_xgc_final_moments_omp.h5'
 
   plot_den_temp_omp(gke_data_file, xgc_data_file, fig_name, y_labels)
 
