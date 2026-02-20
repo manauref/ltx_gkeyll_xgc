@@ -9,6 +9,8 @@
 
 import numpy as np
 import postgkyl as pg
+import click #[ For using pgkyl commands.
+from postgkyl.pgkyl import cli #[ For using pgkyl commands.
 import matplotlib.pyplot as plt
 import sys #[ For error exit.
 import h5py #[ For saving reduced data.
@@ -18,8 +20,9 @@ sys.path.insert(0, '../util/')
 import ltx_common_util as lcu
 
 #[ Plotting options.
+plot_grid_RZ = True  #[ Plot grid on RZ plane.
 plot_vs_x    = False  #[ Plot a quantity at the outboard midplane.
-plot_nT_vs_x = True  #[ Plot density and temperature profiles vs. x.
+plot_nT_vs_x = False  #[ Plot density and temperature profiles vs. x.
 
 out_data_dir  = './data/'
 out_fig_dir   = './figures/'
@@ -91,6 +94,80 @@ def getInterpDataComp(file, porder, basis, comp_in):
     else:
       print("getInterpDataComp: Component ", comp_in, " is not a valid option")
       sys.exit(1)
+
+#................................................................................#
+
+if plot_grid_RZ:
+  #[ Plot the grid on the R-Z plane.
+
+  data_dir = '/Users/mfrancis/Documents/gkeyll/code/gkyl-sims/ltx/sim_data/numerical_eq/2x/li_863mg_103955_03/gn0/'
+  wall_coords = '/Users/mfrancis/Documents/gkeyll/code/gkyl-sims/ltx/sim_data/ltx_gkeyll_xgc/experiment/LTXvessel.csv'  
+  psi_pol = '/Users/mfrancis/Documents/gkeyll/code/gkyl-sims/ltx/sim_data/ltx_gkeyll_xgc/gkeyll/ltx_103955_03-psi.gkyl'
+  psi_contour = True
+  psi_contour_num_levels = 30
+
+  fig_file_name_root = lcu.li863_prefix+'grid_RZ'
+
+  #[ Create a click context (needed to call pgkyl command).
+  ctx = click.core.Context(cli)
+  ctx.obj = {}
+  ctx.obj["data"] = pg.commands.DataSpace()
+  ctx.obj["verbose"] = False
+
+  ctx.invoke(pg.commands.gk_nodes, name=sim_name, path=data_dir, wall_file=wall_coords,
+    psi_file=psi_pol, contour=psi_contour, cnlevels=psi_contour_num_levels, no_show=True)
+
+  #[ Nodes data.
+  nodes = ctx.obj["data"].get_dataset(tag="nodes",idx=0)
+  nodes_majorR = nodes.get_grid()
+  nodes_vertZ = nodes.get_values()
+
+  #[ Edges data.
+  edges = ctx.obj["data"].get_dataset(tag="edges",idx=0)
+  edges_constx = edges.get_grid()
+  edges_consty = edges.get_values()
+
+  plot_h = ctx.obj["plot_handles"]
+  #[ Resize figure:
+  fig_h = plot_h["figure"]
+  fig_width, fig_height = fig_h.get_size_inches() #[ In inches.
+  fig_h.set_size_inches(fig_width*0.85, fig_height*0.9)
+  #[ Resize axis:
+  ax_h = plot_h["axis"]
+  ax_h.set_aspect('equal')
+  ax_pos = ax_h.get_position().bounds
+  ax_h.set_position([ax_pos[0]+0.06, ax_pos[1]-0.02, ax_pos[2]*1.05, ax_pos[3]*1.05])
+  #[ Remove psi colorbar.
+  if psi_pol:
+    plot_h["psi_colorbar"].remove()
+    #[ Node data.
+    psi = ctx.obj["data"].get_dataset(tag="psi",idx=0)
+    psi_coords = psi.get_grid()
+    psi_values = psi.get_values()
+  # end
+
+  if out_figure_file:
+    fig_file_name = output_prefix+fig_file_name_root
+
+    if save_data:
+      h5f = h5py.File(out_data_dir+fig_file_name+'.h5', "w")
+      h5f.create_dataset('subplot00_nodes_xvalues', np.shape(nodes_majorR), dtype='f8', data=nodes_majorR)
+      h5f.create_dataset('subplot00_nodes_yvalues', np.shape(nodes_vertZ ), dtype='f8', data=nodes_vertZ )
+      h5f.create_dataset('subplot00_edges_constx', np.shape(edges_constx), dtype='f8', data=edges_constx)
+      h5f.create_dataset('subplot00_edges_consty', np.shape(edges_consty), dtype='f8', data=edges_consty)
+      if psi_pol:
+        h5f.create_dataset('subplot00_psi_xvalues', np.shape(psi_coords[0]), dtype='f8', data=psi_coords[0])
+        h5f.create_dataset('subplot00_psi_yvalues', np.shape(psi_coords[1]), dtype='f8', data=psi_coords[1])
+        h5f.create_dataset('subplot00_psi_zvalues', np.shape(psi_values   ), dtype='f8', data=psi_values   )
+      # end
+      h5f.close()
+
+    fig_h.savefig(out_fig_dir+fig_file_name+figure_file_format)
+    plt.close()
+
+  else:
+    plt.show()
+
 
 #................................................................................#
 
