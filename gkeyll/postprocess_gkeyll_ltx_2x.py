@@ -20,8 +20,8 @@ sys.path.insert(0, '../util/')
 import ltx_common_util as lcu
 
 #[ Plotting options.
-plot_grid_RZ = True  #[ Plot grid on RZ plane.
-plot_vs_x    = False  #[ Plot a quantity at the outboard midplane.
+plot_grid_RZ = False  #[ Plot grid on RZ plane.
+plot_vs_x    = True  #[ Plot a quantity at the outboard midplane.
 plot_nT_vs_x = False  #[ Plot density and temperature profiles vs. x.
 
 out_data_dir  = './data/'
@@ -49,7 +49,7 @@ def get_equilibrium_meta(data_dir):
     out_d["R_axis"]    = 0.400392 #[ R coord of the magnetic axis.
     out_d["Z_axis"]    = 0 #[ Z coord of the magnetic axis.
     out_d["psi_axis"]  = 4.3835108700000000e-04 #[ psi at the magnetic axis.
-    out_d["psi_lcfs"]  = -5.5560311699999997e-03 #[ LCFS psi coordinate for 863 mg shot (LTX_103955_03.eqdsk).
+    out_d["psi_lcfs"]  = -5.5560311699999997e-03 #[ LCFS psi coordinate for passivated Li shot (LTX_103795_03.eqdsk).
     out_d["psi_conv"]  = out_d["psi_axis"] < out_d["psi_lcfs"] #[ =True psi increases outwards, =False it increases inwards.
   else:
     print("get_psi_lcfs_axis: option NYI.")
