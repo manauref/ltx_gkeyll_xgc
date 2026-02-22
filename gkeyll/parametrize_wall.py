@@ -6,7 +6,10 @@ import matplotlib.pyplot as plt
 #[ cublic split interpolation to give Gkeyll a function f(t)
 #[ where t\in[0,1] that describes the divertor plate.
 
-def parametrize_curve(points):
+#[ Number of interpolation points.
+num_interp = 100
+
+def parametrize_curve(points, num_interp):
   #[ Parametrizes a 2D curve using cubic spline interpolation.
   #[
   #[ Args:
@@ -30,7 +33,7 @@ def parametrize_curve(points):
   cs_y = CubicSpline(t, points[:, 1])
 
   #[ Evaluate the spline at more finely spaced t values.
-  t_fine = np.linspace(0, 1, 100)
+  t_fine = np.linspace(0, 1, num_interp)
   x_t = cs_x(t_fine)
   y_t = cs_y(t_fine)
   print(t_fine)
@@ -46,7 +49,7 @@ points = np.loadtxt(open('./LTX_VV_103955_468ms.csv'),delimiter=',')
 #points = np.sort(points, axis=1)
 #points[:,0] = points[-1::-1,0]
 #points[:,1] = points[-1::-1,1]
-t, x_t, y_t = parametrize_curve(points)
+t, x_t, y_t = parametrize_curve(points, num_interp)
 
 #[ Plot the data and the parametrized curve.
 plt.plot(np.array(points)[:, 0], np.array(points)[:, 1], 'o', label='Data')
