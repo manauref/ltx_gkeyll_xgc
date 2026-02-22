@@ -23,9 +23,9 @@ import sys #[ For error exit.
 sys.path.insert(0, '../util/')
 import ltx_common_util as lcu
 
-plot_grids_RZ_li863mg           = True  #[ Grids on the R-Z plane of 863 mg simulation.
+plot_grids_RZ_li863mg           = False  #[ Grids on the R-Z plane of 863 mg simulation.
 plot_den_omp_init_li863mg       = False  #[ Initial n at outboard midplane (OMP) of 863 mg simulation.
-plot_den_temp_omp_init_li863mg  = False  #[ Initial n and T profiles at OMP.
+plot_den_temp_omp_init_li863mg  = True  #[ Initial n and T profiles at OMP.
 plot_den_temp_omp_final_li863mg = False  #[ Final n and T profiles at OMP.
 
 gke_data_dir = '../gkeyll/data/' #[ Location of reduced Gkeyll data.
