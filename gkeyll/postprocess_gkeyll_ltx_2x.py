@@ -21,8 +21,8 @@ import ltx_common_util as lcu
 
 #[ Plotting options.
 plot_grid_RZ = False  #[ Plot grid on RZ plane.
-plot_vs_x    = True  #[ Plot a quantity at the outboard midplane.
-plot_nT_vs_x = False  #[ Plot density and temperature profiles vs. x.
+plot_vs_x    = False  #[ Plot a quantity at the outboard midplane.
+plot_nT_vs_x = True  #[ Plot density and temperature profiles vs. x.
 
 out_data_dir  = './data/'
 out_fig_dir   = './figures/'
@@ -351,7 +351,7 @@ if plot_nT_vs_x:
   hpla, hplb, hplc = list(), list(), list()
   hpla.append(ax_h[0].plot(spl00_line0_x, spl00_line0_y, color=lcu.default_colors[0], linestyle=lcu.default_line_styles[0], marker=lcu.default_markers[0]))
   hplb.append(ax_h[1].plot(spl01_line0_x, spl01_line0_y, color=lcu.default_colors[0], linestyle=lcu.default_line_styles[0], marker=lcu.default_markers[0]))
-  hplc.append(ax_h[2].plot(spl01_line0_x, spl01_line0_y, color=lcu.default_colors[0], linestyle=lcu.default_line_styles[0], marker=lcu.default_markers[0]))
+  hplc.append(ax_h[2].plot(spl02_line0_x, spl02_line0_y, color=lcu.default_colors[0], linestyle=lcu.default_line_styles[0], marker=lcu.default_markers[0]))
 
   if plot_exp_data:
     #[ Load and plot experimental data.
