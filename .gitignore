@@ -1,3 +1,4 @@
 *.gkyl
 *.json
 Makefile
+__pycache__
