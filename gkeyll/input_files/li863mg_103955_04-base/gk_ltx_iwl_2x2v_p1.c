@@ -16,6 +16,8 @@
 struct gk_ltx_ctx {
   int cdim, vdim; // Dimensionality.
 
+  char geqdsk_file[128]; // File with equilibrium.
+
   // Geometry and magnetic field.
   double Lz;        // Domain size along magnetic field.
   double z_min;  double z_max;
@@ -465,6 +467,20 @@ create_ctx(void)
   double qi = eV; // ion charge
   double qe = -eV; // electron charge
 
+  char geqdsk_file[128] = "../LTX_103955_04.eqdsk";
+  // Get the LCFS and axis psi.
+  struct gkyl_efit_inp efit_inp = {
+    // psiRZ and related inputs
+    .rz_poly_order = 2,
+    .flux_poly_order = 1,
+  };
+  // Copy eqdsk file into efit_inp.
+  memcpy(efit_inp.filepath, geqdsk_file, sizeof(geqdsk_file));
+  struct gkyl_efit *efit = gkyl_efit_new(&efit_inp);
+  double psi_LCFS = efit->sibry;
+  double psi_axis = efit->simag;
+  gkyl_efit_release(efit);
+
   // Grid parameters
   int Nx = 16;
   double Nx_core_frac = (5.0/8.0);
@@ -476,10 +492,8 @@ create_ctx(void)
   int poly_order = 1;
 
   // Geometry and magnetic field.
-  double psi_N_min = 1.245764877e+00; // Minimum psi_N.
-  double psi_N_max = 5.832682525e-01; // Maximum psi_N.
-  double psi_axis  = 1.1884603100000000e-03; // psi at the magnetic axis.
-  double psi_LCFS  = -5.6324622500000003e-03; // LCFS psi coordinate for 863 mg shot (LTX_103955_04.eqdsk).
+  double psi_N_min = 1.256450306e+00; // Minimum psi_N.
+  double psi_N_max = 5.725828231e-01; // Maximum psi_N.
   double psi_min = psi_psi_N(psi_N_min, psi_LCFS, psi_axis); // Minimum psi.
   double psi_max = psi_psi_N(psi_N_max, psi_LCFS, psi_axis); // Maximum psi.  
   printf("Radial grid:\n");
@@ -633,6 +647,10 @@ create_ctx(void)
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
   };
+
+  // Copy eqdsk file into ctx.
+  memcpy(ctx.geqdsk_file, geqdsk_file, sizeof(geqdsk_file));
+
   return ctx;
 }
 
@@ -873,11 +891,12 @@ int main(int argc, char **argv)
 
   struct gkyl_efit_inp efit_inp = {
     // psiRZ and related inputs
-    .filepath = "../../../experiment/li_863mg_103955_04/LTX_103955_04.eqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
     .reflect = true,
   };
+  // Copy eqdsk file into efit_inp.
+  memcpy(efit_inp.filepath, ctx.geqdsk_file, sizeof(ctx.geqdsk_file));
 
   struct gkyl_tok_geo_grid_inp grid_inp = {
     .ftype = GKYL_GEOMETRY_TOKAMAK_IWL,
