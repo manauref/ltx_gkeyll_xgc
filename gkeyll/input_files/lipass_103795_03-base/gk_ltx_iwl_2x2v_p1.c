@@ -873,14 +873,14 @@ int main(int argc, char **argv)
 
   struct gkyl_efit_inp efit_inp = {
     // psiRZ and related inputs
-    .filepath = "../LTX_103795_03.eqdsk",
+    .filepath = "../../../experiment/li_passivated_103795_03/LTX_103795_03.eqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
     .reflect = true,
   };
 
   struct gkyl_tok_geo_grid_inp grid_inp = {
-    .ftype = GKYL_IWL,
+    .ftype = GKYL_GEOMETRY_TOKAMAK_IWL,
     .rclose = 0.25,
     .rleft  = 0.135,
     .rright = 0.7,

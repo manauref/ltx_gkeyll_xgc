@@ -1,54 +1,55 @@
-#include <math.h>
-#include <stdio.h>
-#include <time.h>
-
 #include <gkyl_alloc.h>
 #include <gkyl_const.h>
-#include <gkyl_eqn_type.h>
-#include <gkyl_fem_poisson_bctype.h>
-#include <gkyl_gyrokinetic.h>
+#include <gkyl_efit.h>
+#include <gkyl_gyrokinetic_multib.h>
 #include <gkyl_gyrokinetic_run.h>
-#include <gkyl_math.h>
+#include <gkyl_mpi_comm.h>
+#include <gkyl_null_comm.h>
+#include <gkyl_tok_geo.h>
 
 #include <rt_arg_parse.h>
 
-// Define the context of the simulation. This is basically all the globals
 struct gk_ltx_ctx {
   int cdim, vdim; // Dimensionality.
 
+  char geqdsk_file[128]; // File with equilibrium.
+
   // Geometry and magnetic field.
-  double Lz;        // Domain size along magnetic field.
-  double z_min;  double z_max;
-  double psi_min;  double psi_max;
-  double psi_LCFS;    // Radial location of the last closed flux surface.
-  double Lx_core; // Radial extent of core in psi
-  double Lx; // Total radial extent in psi
-  // Plasma parameters.
-  double me;  double qe;
-  double mi;  double qi;
-  double n0;  double Te0;  double Ti0; 
+  int num_blocks; // Number of blocks.
+  double psi_axis; // Psi at the magnetic axis.
+  double psi_LCFS; // Radial location of the last closed flux surface.
+  double psi_lower_core, psi_upper_core; // Core psi extents.
+  double psi_lower_sol, psi_upper_sol; // SOL psi extents.
+  double theta_lower, theta_upper; // Extents in parallel direction.
+  double Lpsi_core, Lpsi_sol, Lpsi; // Box size in psi.
+  double Ltheta; // Box size in theta.
 
-  // Collisions.
-  double nuFrac;
-  double nuElc;  double nuIon;
-  double nuElcIon;  double nuIonElc;
+  double charge_elc; // Electron charge.
+  double charge_ion; // Ion charge.
+  double mass_elc; // Electron mass.
+  double mass_ion; // Ion mass.
+  double B0; // Magnetic field.
+  double n0; // Density.
+  double Te0; // Electron temperature
+  double Ti0; // Ion temperature.
 
-  double anom_diff_D; // Anomalous particle diffusivity.
+  double nu_frac; // Fraction multiplying collision frequency.
+
+  double anom_diff_D; // Anomalous diffusion coefficient.
 
   // Source parameters.
-  double n_srcOMP;        // Amplitude of the OMP source
+  double ndot_srcOMP;      // Amplitude of the OMP source
   double x_srcOMP;        // Radial location of the OMP source.
   double Te_srcOMP;       // Te for the OMP source.
   double Ti_srcOMP;       // Ti for the OMP source.
   double sigma_srcOMP;    // Radial spread of the OMP source.
   double floor_src;       // Source floor.
 
-  // Grid parameters.
-  int Nz;
-  int Nvpar;
-  int Nmu;
-  int cells[GKYL_MAX_DIM]; // Number of cells in all directions.
-  int poly_order;
+  // Grid.
+  int Npsi_sol; // Number of cells in psi in the SOL.
+  int Npsi_core; // Number of cells in psi in the core.
+  int Ntheta; // Number of cells in theta.
+  int Nvpar, Nmu; // Number of cells in vpar,mu.
 
   // Physical velocity space limits
   double vpar_max_elc; // Parallel velocity extents for electrons.
@@ -70,17 +71,15 @@ struct gk_ltx_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-// Z is constant at -0.8
-// R goes from 1.5 to 1.75
-void pfunc_upper(double s, double* RZ){
+void sol_limiter_func_upper(double s, double* RZ){
 //  // Vertical plate.
 //  RZ[0] = 0.14047;
 //  RZ[1] = -(s-0.061)*0.6;
-  // Tilted plate.
-  double p0[2] = {0.14047, 0.0};
-  double p1[2] = {0.182, -0.327};
-  RZ[0] = (1-s)*p0[0]+s*p1[0];
-  RZ[1] = (1-s)*p0[1]+s*p1[1];
+//  // Tilted plate.
+//  double p0[2] = {0.14047, 0.0};
+//  double p1[2] = {0.182, -0.327};
+//  RZ[0] = (1-s)*p0[0]+s*p1[0];
+//  RZ[1] = (1-s)*p0[1]+s*p1[1];
   // Parametrized curve.
   const int npts = 100;
   double t[] = {
@@ -171,7 +170,7 @@ void pfunc_upper(double s, double* RZ){
   }
 }
 
-void pfunc_lower(double s, double* RZ){
+void sol_limiter_func_lower(double s, double* RZ){
 //  // Vertical plate.
 //  RZ[0] = 0.14047;
 //  RZ[1] = (s-0.061)*0.6;
@@ -270,18 +269,162 @@ void pfunc_lower(double s, double* RZ){
   }
 }
 
+double psi_N(double psi, double psi_lcfs, double psi_axis)
+{
+  // Normalized psi.
+  //   - psi: poloidal flux.
+  //   - psi_lcfs: poloidal flux at the LCFS.
+  //   - psi_axis: poloidal flux at the exis.
+  return (psi - psi_axis) / (psi_lcfs - psi_axis);
+}
+
+double psi_psi_N(double psi_N, double psi_lcfs, double psi_axis)
+{
+  // Compute psi given the normalized psi.
+  //   - psi_N: normalized poloidal flux.
+  //   - psi_lcfs: poloidal flux at the LCFS.
+  //   - psi_axis: poloidal flux at the exis.
+  return psi_N * (psi_lcfs - psi_axis) + psi_axis;
+}
+
+struct gkyl_gk_block_geom*
+create_ltx_iwl_gk_block_geom(void *ctx)
+{
+  struct gk_ltx_ctx *params = ctx;
+
+  struct gkyl_gk_block_geom *bgeom = gkyl_gk_block_geom_new(params->cdim, params->num_blocks);
+
+  /* Block layout and coordinates.
+
+    z  
+    ^  
+    |
+
+    |  +-----------------+-----------------+
+    |  |                 |                 |
+    |  |                 |                 |
+    |  | b0              | b1              |
+    |  + core            + sol             |
+    |  |                 |                 |
+    |  |                 |                 |
+    |  +-----------------+-----------------+
+
+    0 -------------------------------------------------------- -> x
+
+  */  
+
+  struct gkyl_efit_inp efit_inp = {
+    // psiRZ and related inputs
+    .rz_poly_order = 2,
+    .flux_poly_order = 1,
+    .reflect = true,
+  };
+  // Copy eqdsk file into efit_inp.
+  memcpy(efit_inp.filepath, params->geqdsk_file, sizeof(params->geqdsk_file));
+
+  // Theta limits.
+  double theta_lower = params->theta_lower, theta_upper = params->theta_upper;
+
+  // Psi limits.
+  double psi_lower_core = params->psi_lower_core;
+  double psi_upper_core = params->psi_upper_core;
+  double psi_lower_sol  = params->psi_lower_sol ;
+  double psi_upper_sol  = params->psi_upper_sol ;
+  double psi_LCFS       = params->psi_LCFS ;
+
+  // Number of cells.
+  int Npsi_sol  = params->Npsi_sol ;
+  int Npsi_core = params->Npsi_core;
+  int Ntheta    = params->Ntheta   ;
+
+  // Block 0: Core region.
+  gkyl_gk_block_geom_set_block(bgeom, 0, &(struct gkyl_gk_block_geom_info) {
+      .lower = { psi_lower_core, theta_lower },
+      .upper = { psi_upper_core, theta_upper },
+      .cells = { Npsi_core, Ntheta },
+      .cuts = { 1, 1 },
+      .geometry = {
+        .world = {0.0},
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
+        .efit_info = efit_inp,
+        .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
+          .ftype = GKYL_GEOMETRY_TOKAMAK_IWL,
+          .rclose = 0.7,
+          .rleft  = 0.0,
+          .rright = 0.7,
+          .rmin   = 0.1,
+          .rmax   = 0.7,
+          .zmin   = -0.3675,
+          .zmax   =  0.3675,
+        },
+        .has_LCFS = true,
+        .x_LCFS = psi_LCFS, // Location of last closed flux surface.
+      },
+
+      .connections[0] = { // x-direction.
+        { .bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE },
+        { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL },  // Physical boundary.
+      },
+      .connections[1] = { // z-direction.
+        { .bid = 0, .dir = 1, .edge = GKYL_UPPER_POSITIVE }, // Periodic boundary.
+        { .bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE }, // Periodic boundary.
+      }
+    }
+  );
+
+  // Block 1: SOL.
+  gkyl_gk_block_geom_set_block(bgeom, 1, &(struct gkyl_gk_block_geom_info) {
+      .lower = { psi_lower_sol, theta_lower },
+      .upper = { psi_upper_sol, theta_upper },
+      .cells = { Npsi_sol, Ntheta },
+      .cuts = { 1, 1 },
+      .geometry = {
+        .world = {0.0},
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
+        .efit_info = efit_inp,
+        .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
+          .ftype = GKYL_GEOMETRY_TOKAMAK_IWL,
+          .rclose = 0.7,
+          .rleft  = 0.1,
+          .rright = 0.7,
+          .rmin   = 0.1,
+          .rmax   = 0.7,
+          .zmin   = -0.3675,
+          .zmax   =  0.3675,
+          .plate_spec = true,
+          .plate_func_lower = sol_limiter_func_lower,
+          .plate_func_upper = sol_limiter_func_upper,
+        },
+        .has_LCFS = true,
+        .x_LCFS = psi_LCFS, // Location of last closed flux surface.
+      },
+      
+      .connections[0] = { // x-direction.
+        { .bid = 1, .dir = 0, .edge = GKYL_PHYSICAL },  // Physical boundary.
+        { .bid = 0, .dir = 0, .edge = GKYL_LOWER_POSITIVE },
+      },
+      .connections[1] = { // z-direction.
+        { .bid = 1, .dir = 1, .edge = GKYL_PHYSICAL }, // Physical boundary.
+        { .bid = 1, .dir = 1, .edge = GKYL_PHYSICAL }, // Physical boundary.
+      }
+    }
+  );
+
+  return bgeom;
+}
+
 // Source profiles.
 void density_srcOMP(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], z = xn[1];
 
   struct gk_ltx_ctx *app = ctx;
-  double n_srcOMP = app->n_srcOMP;
+  double ndot_srcOMP = app->ndot_srcOMP;
   double x_srcOMP = app->x_srcOMP;
   double sigma_srcOMP = app->sigma_srcOMP;
   double floor_src = app->floor_src;
 
-  fout[0] = n_srcOMP * fmax(0.5*(1.0-tanh(-(x-x_srcOMP)/(2.0*sigma_srcOMP))), floor_src);
+  fout[0] = ndot_srcOMP * fmax(0.5*(1.0-tanh(-(x-x_srcOMP)/(2.0*sigma_srcOMP))), floor_src);
 }
 
 void zero_func(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
@@ -327,11 +470,11 @@ void density_init(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRI
   double x = xn[0], z = xn[1];
 
   struct gk_ltx_ctx *app = ctx;
-  double psi_max = app->psi_max;
-  double Lx = app->Lx;
+  double psi_max = app->psi_upper_core;
+  double Lpsi = app->Lpsi;
   double n0 = app->n0;
 
-  fout[0] = 0.8*n0*(1.5 - tanh((9.0/Lx)*(psi_max-0.646767778*Lx-x)));
+  fout[0] = 0.8*n0*(1.5 - tanh((9.0/Lpsi)*(psi_max-0.646767778*Lpsi-x)));
 }
 
 void upar_init(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
@@ -348,11 +491,11 @@ void temp_init_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTR
   double x = xn[0], z = xn[1];
 
   struct gk_ltx_ctx *app = ctx;
-  double psi_max = app->psi_max;
-  double Lx = app->Lx;
+  double psi_max = app->psi_upper_core;
+  double Lpsi = app->Lpsi;
   double Ti0 = app->Ti0;
 
-  fout[0] = 0.8*Ti0*(1.1 - tanh((9.0/Lx)*(psi_max-0.646767778*Lx-x)));
+  fout[0] = 0.8*Ti0*(1.1 - tanh((9.0/Lpsi)*(psi_max-0.646767778*Lpsi-x)));
 }
 
 void temp_init_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
@@ -360,11 +503,11 @@ void temp_init_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTR
   double x = xn[0], z = xn[1];
 
   struct gk_ltx_ctx *app = ctx;
-  double psi_max = app->psi_max;
-  double Lx = app->Lx;
+  double psi_max = app->psi_upper_core;
+  double Lpsi = app->Lpsi;
   double Te0 = app->Te0;
 
-  fout[0] = 0.8*Te0*(1.1 - tanh((9.0/Lx)*(psi_max-0.646767778*Lx-x)));
+  fout[0] = 0.8*Te0*(1.1 - tanh((9.0/Lpsi)*(psi_max-0.646767778*Lpsi-x)));
 }
 
 void density_bcx_lo(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
@@ -435,7 +578,6 @@ void mapc2p_vel_ion(double t, const double *vc, double* GKYL_RESTRICT vp, void *
   // Quadratic map in mu.
   vp[1] = mu_max_ion*pow(cmu,2);
 }
-
 struct gk_ltx_ctx
 create_ctx(void)
 {
@@ -447,58 +589,102 @@ create_ctx(void)
   double qi = eV; // ion charge
   double qe = -eV; // electron charge
 
+  char geqdsk_file[128] = "../../../experiment/li_863mg_103955_04/LTX_103955_04.eqdsk";
+  // Get parameters from eqdsk file.
+  struct gkyl_efit_inp efit_inp = {
+    // psiRZ and related inputs.
+    .rz_poly_order = 2,
+    .flux_poly_order = 1,
+  };
+  // Copy eqdsk file into efit_inp.
+  memcpy(efit_inp.filepath, geqdsk_file, sizeof(geqdsk_file));
+  struct gkyl_efit *efit = gkyl_efit_new(&efit_inp);
+  double psi_LCFS = efit->sibry; // psi at LCFS (from eqdsk).
+  double psi_axis = efit->simag; // psi at the magnetic axis.
+  gkyl_efit_release(efit);
+
+  double num_blocks = 2;
+
   // Grid parameters
-  int Nx = 16;
-  double Nx_core_frac = (5.0/8.0);
-  int Nx_core = floor(Nx_core_frac*Nx);
-  int Nx_sol = Nx-Nx_core;
-  int Nz = 16;
+  int Npsi = 16;
+  double Npsi_core_frac = (5.0/8.0);
+  int Npsi_core = floor(Npsi_core_frac*Npsi);
+  int Npsi_sol = Npsi-Npsi_core;
+  int Ntheta = 16;
   int Nvpar = 12;
   int Nmu = 8;
   int poly_order = 1;
 
-  // Geometry and magnetic field.
-  double Lz = 2.0*(M_PI-1e-14);    // Domain size along magnetic field.
-  double psi_LCFS = -5.4760172700000003e-03; // psi at LCFS. Taken from efit.
-  double psi_max = psi_LCFS + 0.003; // Inner core boundary (psi increases towards core).
-  double delta_psi = (psi_max-psi_LCFS)/Nx_core; // Cell length in psi.
-  double psi_min = psi_LCFS - Nx_sol*delta_psi; // Outer SOL boundary (psi increases towards core).
-  double Lx = psi_max - psi_min;
-  double Lx_core = psi_LCFS - psi_min;
-  printf("Nx_core          = %3d\n",Nx_core);
-  printf("Nx_sol           = %3d\n",Nx_sol);
-  printf("Nx               = %3d\n",Nx);
-  printf("psi_LCFS         = %.9e\n",psi_LCFS        );
-  printf("psi_min          = %.9e\n",psi_min         );
-  printf("psi_max          = %.9e\n",psi_max         );
-  printf("psi_LCFS-psi_min = %.9e\n",psi_LCFS-psi_min);
-  printf("psi_max-psi_LCFS = %.9e\n",psi_max-psi_LCFS);
-  printf("\n");
+  // Assume psi increases towards the core (depends on eqdsk).
+  double psi_N_min = 1.256450306e+00; // Minimum psi_N.
+  double psi_N_max = 5.725828231e-01; // Maximum psi_N.
+  double psi_min = psi_psi_N(psi_N_min, psi_LCFS, psi_axis); // Minimum psi.
+  double psi_max = psi_psi_N(psi_N_max, psi_LCFS, psi_axis); // Maximum psi.
+  printf("Radial grid:\n");
+  printf("  Npsi_core        = %3d\n",Npsi_core);
+  printf("  Npsi_sol         = %3d\n",Npsi_sol);
+  printf("  Npsi             = %3d\n",Npsi);
+  printf("  psi_LCFS         = %.9e\n",psi_LCFS        );
+  printf("  psi_axis         = %.9e\n",psi_axis        );
+  printf("  psi_N_min        = %.9e\n",psi_N_min       );
+  printf("  psi_N_max        = %.9e\n",psi_N_max       );
+  printf("  psi_min          = %.9e\n",psi_min         );
+  printf("  psi_max          = %.9e\n",psi_max         );
 
-  // Plasma parameters. Chosen based on the value of a cubic sline
-  // between the last TS data inside the LCFS and the probe data in
-  // in the far SOL, near R=0.475 m.
-  double B0  = 0.5*(1.666901e-01+6.814593e-01);
-  double mi  = mp;   // Hydrogen ions.
-  double Te_max = 320*eV;
-  double Ti_max = Te_max/2.0;
-  double n_max  = 1.6e19;   // [1/m^3]
+  // Adjust psi so that psi_LCFS is at a cell boundary.
+  double delta_psi = (psi_max-psi_LCFS)/Npsi_core; // Cell length in psi.
+  psi_min = psi_LCFS - Npsi_sol*delta_psi; // Outer SOL boundary (psi increases towards core).
+  psi_N_min = psi_N(psi_min, psi_LCFS, psi_axis); // Minimum psi_N.
+  printf("After adjustment:\n");
+  printf("  psi_N_min        = %.9e\n",psi_N_min     );
+  printf("  psi_N_max        = %.9e\n",psi_N_max     );
+  printf("  psi_min          = %.9e\n",psi_min       );
+  printf("  psi_max          = %.9e\n",psi_max       );
+                            
+  double psi_lower_core = psi_LCFS;
+  double psi_upper_core = psi_max;
 
+  double psi_lower_sol = psi_min;
+  double psi_upper_sol = psi_LCFS;
+
+  double theta_lower = -(M_PI-1e-14);
+  double theta_upper =  (M_PI-1e-14);
+
+  double Lpsi_core = psi_upper_core - psi_lower_core;
+  double Lpsi_sol = psi_upper_sol - psi_lower_sol;
+  double Lpsi = Lpsi_sol + Lpsi_sol;
+  double Ltheta = theta_upper - theta_lower;
+
+  printf("  psi_lower_core = %.13e\n",psi_lower_core);
+  printf("  psi_upper_core = %.13e\n",psi_upper_core);
+  printf("  psi_lower_sol  = %.13e\n",psi_lower_sol);
+  printf("  psi_upper_sol  = %.13e\n",psi_upper_sol);
+  printf("  Ntheta         = %d\n",Ntheta     );
+
+  // Plasma parameters.
+  double mi = mp;   // Hydrogen ions.
+  double Te_max = 320*eV; // [J].
+  double Ti_max = Te_max/2.0; // [J].
+  double n_max  = 1.6e19; // [1/m^3].
+  double bmag_min = 1.666901e-01; // [T].
+  double bmag_max = 6.814593e-01; // [T].
+
+  double n0  = 0.5*n_max;
   double Te0 = 0.5*Te_max;
   double Ti0 = 0.5*Ti_max;
-  double n0  = 0.5*n_max;   // [1/m^3]
+  double B0  = 0.5*(bmag_min+bmag_max);
 
-  double nuFrac = 1.0;
+  double nu_frac = 1.0;
   // Electron-electron collision freq.
-  double logLambdaElc = 6.6 - 0.5 * log(n0/1e20) + 1.5 * log(Ti0/eV);
-  double nuElc = nuFrac * logLambdaElc * pow(eV, 4) * n0 /
+  double logLambda_elc = 6.6 - 0.5 * log(n0/1e20) + 1.5 * log(Ti0/eV);
+  double nu_elc = nu_frac * logLambda_elc * pow(eV, 4) * n0 /
     (6*sqrt(2.) * pow(M_PI,3./2.) * pow(eps0,2) * sqrt(me) * pow(Te0,3./2.));
   // Ion-ion collision freq.
-  double logLambdaIon = 6.6 - 0.5 * log(n0/1e20) + 1.5 * log(Ti0/eV);
-  double nuIon = nuFrac * logLambdaIon * pow(eV, 4) * n0 /
+  double logLambda_ion = 6.6 - 0.5 * log(n0/1e20) + 1.5 * log(Ti0/eV);
+  double nu_ion = nu_frac * logLambda_ion * pow(eV, 4) * n0 /
     (12 * pow(M_PI,3./2.) * pow(eps0,2) * sqrt(mi) * pow(Ti0,3./2.));
-  double nuElcIon = nuElc*sqrt(2.0);
-  double nuIonElc = nuElcIon*(me/mi);
+  double nu_elc_ion = nu_elc*sqrt(2.0);
+  double nu_ion_elc = nu_elc_ion*(me/mi);
 
   double anom_diff_D = 30.0; // Anomalous particle diffusivity [m^2/s].
 
@@ -514,11 +700,11 @@ create_ctx(void)
   double Lc_LCFS = 6.0; // Approx. connection length just outside LCFS at OMP.
   double Te_LCFS = 210.0*eV;
   double cs_LCFS = sqrt(Te_LCFS/mi);
-  double n_srcOMP = n_LCFS*cs_LCFS/Lc_LCFS;
-  double x_srcOMP = psi_max-0.15*Lx;
+  double ndot_srcOMP = n_LCFS*cs_LCFS/Lc_LCFS;
+  double x_srcOMP = psi_max-0.15*Lpsi;
   double Te_srcOMP = Te_max;
   double Ti_srcOMP = Ti_max;
-  double sigma_srcOMP = 0.03*Lx;
+  double sigma_srcOMP = 0.03*Lpsi;
   double floor_src = 1e-2;
 
   // Physical velocity space limits
@@ -539,49 +725,59 @@ create_ctx(void)
 
   double t_end = 8*500.0e-6;
   int num_frames = 80;
-  double write_phase_freq = 1.0; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
+  double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
-
+                             //
   struct gk_ltx_ctx ctx = {
     .cdim = cdim,
     .vdim = vdim,
-    .Lz     = Lz    ,
-    .z_min = -Lz/2.,  .z_max = Lz/2.,
-    .psi_min = psi_min,  .psi_max = psi_max,
+    // Reference parameters.
+    .charge_elc = qe, 
+    .charge_ion = qi, 
+    .mass_elc = me, 
+    .mass_ion = mi,
+    .B0 = B0, 
+    .n0 = n0, 
+    .Te0 = Te0, 
+    .Ti0 = Ti0, 
+
+    // Geometry.
+    .num_blocks = num_blocks,
+    .psi_axis = psi_axis,
     .psi_LCFS = psi_LCFS,
-    .Lx = Lx,
-    .Lx_core = Lx_core,
-  
-    .me = me,  .qe = qe,
-    .mi = mi,  .qi = qi,
-    .n0 = n0,  .Te0 = Te0,  .Ti0 = Ti0,
-  
-    .nuFrac = nuFrac,
-    .nuElc = nuElc,  .nuIon = nuIon,
-    .nuElcIon = nuElcIon,  .nuIonElc = nuIonElc,
-  
+    .psi_lower_core = psi_lower_core,
+    .psi_upper_core = psi_upper_core,
+    .psi_lower_sol = psi_lower_sol,
+    .psi_upper_sol = psi_upper_sol,
+    .theta_lower = theta_lower,
+    .theta_upper = theta_upper,
+    .Lpsi_core = Lpsi_core, 
+    .Lpsi_sol = Lpsi_sol, 
+    .Lpsi = Lpsi, 
+    .Ltheta = Ltheta,
+    .Npsi_sol = Npsi_sol,
+    .Npsi_core = Npsi_core,
+    .Ntheta = Ntheta,
+
+    .nu_frac = nu_frac,
+
     .anom_diff_D = anom_diff_D,
 
-    .n_srcOMP     = n_srcOMP    ,
+    // Source parameters.
+    .ndot_srcOMP  = ndot_srcOMP ,
     .Te_srcOMP    = Te_srcOMP   ,
     .Ti_srcOMP    = Ti_srcOMP   ,
     .x_srcOMP     = x_srcOMP    ,
     .sigma_srcOMP = sigma_srcOMP,
     .floor_src    = floor_src   ,
-  
-    .Nz = Nz,
-    .Nvpar = Nvpar,
-    .Nmu = Nmu,
-    .cells = {Nx, Nz, Nvpar, Nmu},
-    .poly_order = poly_order,
 
     // Physical velocity space limits
-    .vpar_max_elc = vpar_max_elc,
-    .mu_max_elc = mu_max_elc,
-    .vpar_max_ion = vpar_max_ion,
-    .mu_max_ion = mu_max_ion,
+    .vpar_max_elc = vpar_max_elc, 
+    .mu_max_elc = mu_max_elc, 
+    .vpar_max_ion = vpar_max_ion, 
+    .mu_max_ion = mu_max_ion, 
     // Computational velocity space limits
     .vpar_min_elc_c = vpar_min_elc_c,
     .vpar_max_elc_c = vpar_max_elc_c,
@@ -591,23 +787,33 @@ create_ctx(void)
     .vpar_max_ion_c = vpar_max_ion_c,
     .mu_min_ion_c = mu_min_ion_c,
     .mu_max_ion_c = mu_max_ion_c,
+    // Velocity space cells.
+    .Nvpar = Nvpar,
+    .Nmu = Nmu,
 
-    .t_end = t_end,  .num_frames = num_frames,
+    // Time stepping and I/O.
+    .t_end = t_end, 
+    .num_frames = num_frames, 
     .write_phase_freq = write_phase_freq,
     .int_diag_calc_num = int_diag_calc_num,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
   };
+
+  // Copy eqdsk file into ctx.
+  memcpy(ctx.geqdsk_file, geqdsk_file, sizeof(geqdsk_file));
   return ctx;
 }
 
-
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi) MPI_Init(&argc, &argv);
+  if (app_args.use_mpi) {
+    MPI_Init(&argc, &argv);
+  }
 #endif
 
   if (app_args.trace_mem) {
@@ -615,16 +821,13 @@ int main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct gk_ltx_ctx ctx = create_ctx(); // Context for init functions.
-
-  int cells_x[ctx.cdim], cells_v[ctx.vdim];
-  for (int d=0; d<ctx.cdim; d++)
-    cells_x[d] = APP_ARGS_CHOOSE(app_args.xcells[d], ctx.cells[d]);
-  for (int d=0; d<ctx.vdim; d++)
-    cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim+d]);
-
   // Construct communicator for use in app.
   struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
+
+  struct gk_ltx_ctx ctx = create_ctx(); // Context for init functions.
+                    
+  // Construct block geometry
+  struct gkyl_gk_block_geom *bgeom = create_ltx_iwl_gk_block_geom(&ctx);
 
   // Electrons.
   struct gkyl_gyrokinetic_projection elc_bcx_lo = {
@@ -637,144 +840,26 @@ int main(int argc, char **argv)
     .temp = temp_bcx_lo_elc,
   };
 
-  struct gkyl_gyrokinetic_species elc = {
-    .name = "elc",
-    .charge = ctx.qe, .mass = ctx.me,
-    .vdim = ctx.vdim,
-    .lower = { ctx.vpar_min_elc_c, ctx.mu_min_elc_c},
-    .upper = { ctx.vpar_max_elc_c, ctx.mu_max_elc_c},
-    .cells = { cells_v[0], cells_v[1] },
+  struct gkyl_gyrokinetic_bc elc_phys_bcs[] = {
+    // block 0 BCs
+    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_FIXED_FUNC, .projection = elc_bcx_lo,},
+    // block 1 BCs
+    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 1, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
+    { .bidx = 1, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
+  };
 
-    .mapc2p = {
-      .mapping = mapc2p_vel_elc,
-      .ctx = &ctx,
-    },
-
+ struct gkyl_gyrokinetic_multib_species_pb mb_elc = {
     .polarization_density = ctx.n0,
 
-//    .positivity = {
-//      .type = GKYL_GK_POSITIVITY_SHIFT,
-//      .quasineutrality_rescale = true,
-//    },
-
     .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
       .ctx_density = &ctx,
       .density = density_init,
       .ctx_upar = &ctx,
-      .upar= upar_init,
+      .upar = upar_init,
       .ctx_temp = &ctx,
-      .temp = temp_init_elc,      
-    },
-
-    .collisionless = {
-      .type = GKYL_GK_COLLISIONLESS_ES,
-    },
-
-    .collisions =  {
-      .collision_id = GKYL_LBO_COLLISIONS,
-      .num_cross_collisions = 1,
-      .collide_with = { "ion" },
-      .den_ref = ctx.n0,
-      .temp_ref = ctx.Te0,
-    },
-
-    .anomalous_diffusion = {
-      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
-      .D_profile = diffusion_D_func,
-      .D_profile_ctx = &ctx,
-//      .write_diagnostics = true,
-    },
-
-    .source = {
-      .source_id = GKYL_PROJ_SOURCE,
-      .num_sources = 1,
-      .projection[0] = {
-        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-        .ctx_density = &ctx,
-        .ctx_upar = &ctx,
-        .ctx_temp = &ctx,
-        .density = density_srcOMP,
-        .upar = zero_func,
-        .temp = temp_elc_srcOMP,
-      }, 
-      .diagnostics = {
-        .num_diag_moments = 5,
-        .diag_moments = { GKYL_F_MOMENT_MAXWELLIAN, },
-        .num_integrated_diag_moments = 1,
-        .integrated_diag_moments = { GKYL_F_MOMENT_M0M1M2, },
-      },
-    },
-
-    .bcs = {
-      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
-      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_FIXED_FUNC, .projection = elc_bcx_lo, },
-      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_IWL, },
-      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_IWL, },
-    },
-
-    .num_diag_moments = 4,
-    .diag_moments = { GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN, },
-  };
-
-  // Ions.
-  struct gkyl_gyrokinetic_projection ion_bcx_lo = {
-    .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-    .ctx_density = &ctx,
-    .density = density_bcx_lo,
-    .ctx_upar = &ctx,
-    .upar = upar_bcx_lo,
-    .ctx_temp = &ctx,
-    .temp = temp_bcx_lo_ion,
-  };
-
-  struct gkyl_gyrokinetic_species ion = {
-    .name = "ion",
-    .charge = ctx.qi, .mass = ctx.mi,
-    .vdim = ctx.vdim,
-    .lower = { ctx.vpar_min_ion_c, ctx.mu_min_ion_c},
-    .upper = { ctx.vpar_max_ion_c, ctx.mu_max_ion_c},
-    .cells = { cells_v[0], cells_v[1] },
-
-    .mapc2p = {
-      .mapping = mapc2p_vel_ion,
-      .ctx = &ctx,
-    },
-
-    .polarization_density = ctx.n0,
-
-//    .positivity = {
-//      .type = GKYL_GK_POSITIVITY_SHIFT,
-//      .quasineutrality_rescale = true,
-//    },
-
-    .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
-      .ctx_density = &ctx,
-      .density = density_init,
-      .ctx_upar = &ctx,
-      .upar= upar_init,
-      .ctx_temp = &ctx,
-      .temp = temp_init_ion,      
-    },
-
-    .collisionless = {
-      .type = GKYL_GK_COLLISIONLESS_ES,
-    },
-
-    .collisions =  {
-      .collision_id = GKYL_LBO_COLLISIONS,
-      .num_cross_collisions = 1,
-      .collide_with = { "elc" },
-      .den_ref = ctx.n0,
-      .temp_ref = ctx.Ti0,
-    },
-
-    .anomalous_diffusion = {
-      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
-      .D_profile = diffusion_D_func,
-      .D_profile_ctx = &ctx,
-//      .write_diagnostics = true,
+      .temp = temp_init_ion,
     },
 
     .source = {
@@ -788,7 +873,7 @@ int main(int argc, char **argv)
         .density = density_srcOMP,
         .upar = zero_func,
         .temp = temp_ion_srcOMP,
-      }, 
+      },
       .diagnostics = {
         .num_diag_moments = 5,
         .diag_moments = { GKYL_F_MOMENT_MAXWELLIAN, },
@@ -797,103 +882,215 @@ int main(int argc, char **argv)
       },
     },
 
-    .bcs = {
-      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
-      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_FIXED_FUNC, .projection = ion_bcx_lo, },
-      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_IWL, },
-      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_IWL, },
+  };
+
+  struct gkyl_gyrokinetic_multib_species_pb elc_blocks[ctx.num_blocks];
+  mb_elc.block_id = 0;
+  elc_blocks[0] = mb_elc;
+  mb_elc.block_id = 1;
+  elc_blocks[1] = mb_elc;
+
+  struct gkyl_gyrokinetic_multib_species elc = {
+    .name = "elc",
+    .charge = ctx.charge_elc, .mass = ctx.mass_elc,
+    .vdim = ctx.vdim,
+    .lower = { ctx.vpar_min_elc_c, ctx.mu_min_elc_c},
+    .upper = { ctx.vpar_max_elc_c, ctx.mu_max_elc_c},
+    .cells = { ctx.Nvpar, ctx.Nmu },
+
+    .mapc2p = {
+      .mapping = mapc2p_vel_elc,
+      .ctx = &ctx,
     },
-    
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+      .den_ref = ctx.n0, // Density used to calculate coulomb logarithm.
+      .temp_ref = ctx.Te0, // Temperature used to calculate coulomb logarithm.
+      .num_cross_collisions = 1,
+      .collide_with = { "ion" },
+    },
+
+    .anomalous_diffusion = {
+      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+      .D_profile = diffusion_D_func,
+      .D_profile_ctx = &ctx,
+//      .write_diagnostics = true,
+    },
+
+    .num_physical_bcs = sizeof(elc_phys_bcs)/sizeof(struct gkyl_gyrokinetic_bc),
+    .bcs = elc_phys_bcs,
+
+    .blocks = elc_blocks,
+    .duplicate_across_blocks = false,
+
     .num_diag_moments = 4,
-    .diag_moments = { GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN, },
-  };
-
-  struct gkyl_poisson_bias_line target_corner_bcs[] = {
-    {
-     .perp_dirs = {0, 1}, // Directions perpendicular to line.
-     .perp_coords = {ctx.psi_LCFS, ctx.z_min}, // Coordinates of the line in perpendicular directions.
-     .val = 0.0, // Biasing value.
-    },
-    {
-     .perp_dirs = {0, 1}, // Directions perpendicular to line.
-     .perp_coords = {ctx.psi_LCFS, ctx.z_max}, // Coordinates of the line in perpendicular directions.
-     .val = 0.0, // Biasing value.
+    .diag_moments = { GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    .boundary_flux_diagnostics = {
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+//      .time_integrated = true,
     },
   };
 
-  struct gkyl_poisson_bias_line_list bias_line_list = {
-    .num_bias_line = 2,
-    .bl = target_corner_bcs,
+  // Ions.
+  struct gkyl_gyrokinetic_projection ion_bcx_lo = {
+    .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+    .ctx_density = &ctx,
+    .density = density_bcx_lo,
+    .ctx_upar = &ctx,
+    .upar = upar_bcx_lo,
+    .ctx_temp = &ctx,
+    .temp = temp_bcx_lo_ion,
   };
 
-  // Field.
-  struct gkyl_gyrokinetic_field field = {
-    .gkfield_id = GKYL_GK_FIELD_ES_IWL,
-    .poisson_bcs = {
-      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}, },
-      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}, },
+  struct gkyl_gyrokinetic_bc ion_phys_bcs[] = {
+    // block 0 BCs
+    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_FIXED_FUNC, .projection = ion_bcx_lo,},
+    // block 1 BCs
+    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 1, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
+    { .bidx = 1, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
+  };
+
+  struct gkyl_gyrokinetic_multib_species_pb mb_ion = {
+    .polarization_density = ctx.n0,
+
+    .projection = {
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+      .ctx_density = &ctx,
+      .density = density_init,
+      .ctx_upar = &ctx,
+      .upar= upar_init,
+      .ctx_temp = &ctx,
+      .temp = temp_init_ion,
     },
-    .bias_line_list = &bias_line_list,
+
+    .source = {
+      .source_id = GKYL_PROJ_SOURCE,
+      .num_sources = 1,
+      .projection[0] = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+        .ctx_density = &ctx,
+        .ctx_upar = &ctx,
+        .ctx_temp = &ctx,
+        .density = density_srcOMP,
+        .upar = zero_func,
+        .temp = temp_ion_srcOMP,
+      },
+      .diagnostics = {
+        .num_diag_moments = 5,
+        .diag_moments = { GKYL_F_MOMENT_MAXWELLIAN, },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { GKYL_F_MOMENT_M0M1M2, },
+      },
+    },
+
   };
 
-  struct gkyl_efit_inp efit_inp = {
-    // psiRZ and related inputs
-    .filepath = "../../../experiment/li_863mg_103955_03/LTX_103955_03.eqdsk",
-    .rz_poly_order = 2,
-    .flux_poly_order = 1,
-    .reflect = true,
+  struct gkyl_gyrokinetic_multib_species_pb ion_blocks[ctx.num_blocks];
+  mb_ion.block_id = 0;
+  ion_blocks[0] = mb_ion;
+  mb_ion.block_id = 1;
+  ion_blocks[1] = mb_ion;
+
+  struct gkyl_gyrokinetic_multib_species ion = {
+    .name = "ion",
+    .charge = ctx.charge_ion, .mass = ctx.mass_ion,
+    .vdim = ctx.vdim,
+    .lower = { ctx.vpar_min_ion_c, ctx.mu_min_ion_c},
+    .upper = { ctx.vpar_max_ion_c, ctx.mu_max_ion_c},
+    .cells = { ctx.Nvpar, ctx.Nmu },
+
+    .mapc2p = {
+      .mapping = mapc2p_vel_ion,
+      .ctx = &ctx,
+    },
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+      .den_ref = ctx.n0, // Density used to calculate coulomb logarithm.
+      .temp_ref = ctx.Ti0, // Temperature used to calculate coulomb logarithm.
+      .bmag_ref = ctx.B0,
+      .num_cross_collisions = 1,
+      .collide_with = { "elc" },
+    },
+
+    .anomalous_diffusion = {
+      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+      .D_profile = diffusion_D_func,
+      .D_profile_ctx = &ctx,
+//      .write_diagnostics = true,
+    },
+
+    .num_physical_bcs = sizeof(ion_phys_bcs)/sizeof(struct gkyl_gyrokinetic_bc),
+    .bcs = ion_phys_bcs,
+
+    .blocks = ion_blocks,
+    .duplicate_across_blocks = false,
+
+    .num_diag_moments = 4,
+    .diag_moments = { GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    .boundary_flux_diagnostics = {
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+//      .time_integrated = true,
+    },
   };
 
-  struct gkyl_tok_geo_grid_inp grid_inp = {
-    .ftype = GKYL_GEOMETRY_TOKAMAK_IWL,
-    .rclose = 0.7,
-    .rleft  = 0.1,
-    .rright = 0.7,
-    .rmin   = 0.1,
-    .rmax   = 0.7,
-    .zmin   = -0.3675,
-    .zmax   =  0.3675,
-    .plate_spec = true,
-    .plate_func_lower = pfunc_lower,
-    .plate_func_upper = pfunc_upper,
-  }; 
+  // Field object.
+  struct gkyl_gyrokinetic_multib_field_pb field_blocks[1];
+  field_blocks[0] = (struct gkyl_gyrokinetic_multib_field_pb) {
+    // No block specific field info for this simulation
+  };
 
-  // GK app
-  struct gkyl_gk app_inp = {
-    .name = "gk_ltx_iwl_2x2v_p1",
+  struct gkyl_gyrokinetic_bc field_phys_bcs[] = {
+    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+  };
+
+  struct gkyl_gyrokinetic_multib_field field = {
+    .blocks = field_blocks, 
+    .duplicate_across_blocks = true,
+
+    .num_physical_bcs = sizeof(field_phys_bcs)/sizeof(struct gkyl_gyrokinetic_bc),
+    .bcs = field_phys_bcs,
+  };
+
+  struct gkyl_gyrokinetic_multib app_inp = {
+    .name = "gk_multib_ltx_iwl_2x2v_p1",
 
     .cdim = ctx.cdim,
-    .lower = { ctx.psi_min, ctx.z_min },
-    .upper = { ctx.psi_max, ctx.z_max },
-    .cells = { cells_x[0], cells_x[1] },
-    .poly_order = ctx.poly_order,
+    .poly_order = 1,
     .basis_type = app_args.basis_type,
+    .cfl_frac = 1.0,
 
-    .geometry = {
-      .world = {0.0},
-      .geometry_id = GKYL_GEOMETRY_TOKAMAK,
-      .efit_info = efit_inp,
-      .tok_grid_info = grid_inp,
-      .has_LCFS = true,
-      .x_LCFS = ctx.psi_LCFS, // Location of last closed flux surface.
-    },
-
-    .num_periodic_dir = 0,
-    .periodic_dirs = {  },
-
+    .gk_block_geom = bgeom,
+    
     .num_species = 2,
-    .species = { elc, ion },
+    .species = { elc, ion},
+
     .field = field,
 
-    .parallelism = {
-      .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0], app_args.cuts[1] },
-      .comm = comm,
-    },
+    .comm = comm,
+    .use_gpu = app_args.use_gpu,
   };
 
   struct gkyl_gyrokinetic_run_inp run_inp = {
-    .app_inp = app_inp,
+    .app_type = GKYL_GK_MULTIB,
+    .multib_app_inp = app_inp,
     .time_stepping = {
       .t_end = ctx.t_end,
       .num_frames = ctx.num_frames,
@@ -905,20 +1102,18 @@ int main(int argc, char **argv)
       .restart_frame = app_args.restart_frame,
       .num_steps = app_args.num_steps,
     },
-    .print_verbosity = {
-      .enabled = true,
-      .frequency = 0.1,
-    },
+    .print_verbosity = true,
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
-  
+
+  gkyl_gk_block_geom_release(bgeom);
   gkyl_gyrokinetic_comms_release(comm);
 
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi)
     MPI_Finalize();
 #endif
-
+  
   return 0;
 }
