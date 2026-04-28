@@ -24,14 +24,15 @@ plot_grid_RZ          = False  #[ Plot grid on RZ plane.
 plot_vs_x             = False  #[ Plot a quantity at the outboard midplane.
 plot_nT_vs_x          = False  #[ Plot density and temperature profiles vs. x.
 plot_src_mom_vs_x     = False  #[ Plot source moments vs. x.
-plot_src_int_mom_vs_t = True  #[ Plot source integrated moments vs. t.
+plot_src_int_mom_vs_t = False  #[ Plot source integrated moments vs. t.
+plot_vs_RZ            = True  #[ Plot a quantity at the R-Z midplane.
 
 out_data_dir  = './data/'
 out_fig_dir   = './figures/'
 output_prefix = 'ltx_gkeyll_'
 
-save_data          = False    #[ Indicate whether to save data in plot to HDF5 file.
-out_figure_file    = False     #[ Output a figure file?.
+save_data          = True    #[ Indicate whether to save data in plot to HDF5 file.
+out_figure_file    = True     #[ Output a figure file?.
 figure_file_format = '.png'    #[ Can be .png, .pdf, .ps, .eps, .svg.
 
 sim_name   = 'gk_ltx_iwl_2x2v_p1'      #[ Root name of files to process.
@@ -68,13 +69,26 @@ def get_equilibrium_meta(data_dir):
 file_fmt = '.gkyl' #[ Data file format
 poly_order, basis_type = 1, 'ms' #[ Polynomial order and type of basis.
 
-def getInterpDataComp(file, porder, basis, comp_in):
+def get_interp_data_c2p(data_file, porder, basis, comp_in, c2p_file):
+  #[ Get interpolated data using the c2p coordinate transformation when interpolating.
+  pg_data = pg.GData(data_file, mapc2p_name=c2p_file)
+  pg_interp = pg.GInterpModal(pg_data, porder, basis)
+  x_out, data_out = pg_interp.interpolate(comp_in)
+  for i in range(len(x_out)):
+    x_out[i] = np.squeeze(x_out[i])
+  # end
+  data_out = np.squeeze(data_out)
+  return x_out, data_out
+
+def getInterpDataComp(file, porder, basis, comp_in, **kwargs):
   #[ Get a specific component from a multicomponent file.
   #[ Inputs
   #[   file: file name.
   #[   porder: polynomial order.
   #[   basis: basis name.
   #[   comp_in: component (string or int).
+  #[   kwargs:
+  #[     mapc2p: name of mapc2p file.
   #[ Available options for comp_in:
   #[   BiMaxwellianMoments in file: 'den', 'upar', 'tpar', 'tperp', 'temp' or an int.
   #[   MaxwellianMoments in file: 'den', 'upar', 'temp' or an int.
@@ -82,26 +96,54 @@ def getInterpDataComp(file, porder, basis, comp_in):
   maxwellian_comp_idx = {'den' : 0, 'upar' : 1, 'temp' : 2,}
   bimaxwellian_comp_idx = {'den' : 0, 'upar' : 1, 'tpar' : 2, 'tperp' : 2,}
 
-  if isinstance(comp_in,int):
-    return np.squeeze(pgu.getInterpData(file, porder, basis, comp=comp_in))
+  if 'mapc2p' not in kwargs:
+    if isinstance(comp_in,int):
+      return np.squeeze(pgu.getInterpData(file, porder, basis, comp=comp_in))
 
-  elif isinstance(comp_in,str):
-    if 'MaxwellianMoments' in file:
-      comp_idx = maxwellian_comp_idx[comp_in]
-      return np.squeeze(pgu.getInterpData(file, porder, basis, comp=comp_idx))
-  
-    elif 'BiMaxwellianMoments' in file:
-      if comp_in == 'temp':
-        tpar_idx = bimaxwellian_comp_idx['tpar']
-        tperp_idx = bimaxwellian_comp_idx['tperp']
-        return np.squeeze( (    pgu.getInterpData(file, porder, basis, comp=tpar_idx) + \
-                            2.0*pgu.getInterpData(file, porder, basis, comp=tperp_idx) )/3.0 )
-      else:
+    elif isinstance(comp_in,str):
+      if 'MaxwellianMoments' in file:
         comp_idx = maxwellian_comp_idx[comp_in]
         return np.squeeze(pgu.getInterpData(file, porder, basis, comp=comp_idx))
-    else:
-      print("getInterpDataComp: Component ", comp_in, " is not a valid option")
-      sys.exit(1)
+    
+      elif 'BiMaxwellianMoments' in file:
+        if comp_in == 'temp':
+          tpar_idx = bimaxwellian_comp_idx['tpar']
+          tperp_idx = bimaxwellian_comp_idx['tperp']
+          return np.squeeze( (    pgu.getInterpData(file, porder, basis, comp=tpar_idx) + \
+                              2.0*pgu.getInterpData(file, porder, basis, comp=tperp_idx) )/3.0 )
+        else:
+          comp_idx = maxwellian_comp_idx[comp_in]
+          return np.squeeze(pgu.getInterpData(file, porder, basis, comp=comp_idx))
+      else:
+        print("getInterpDataComp: Component ", comp_in, " is not a valid option")
+        sys.exit(1)
+  else:
+    #[ Transform to R-Z coordinates.
+    if isinstance(comp_in,int):
+      x_out, data_out = get_interp_data_c2p(file, porder, basis, comp_in, kwargs['mapc2p'])
+      return x_out, data_out
+
+    elif isinstance(comp_in,str):
+      if 'MaxwellianMoments' in file:
+        comp_idx = maxwellian_comp_idx[comp_in]
+        x_out, data_out = get_interp_data_c2p(file, porder, basis, comp_idx, kwargs['mapc2p'])
+        return x_out, data_out
+    
+      elif 'BiMaxwellianMoments' in file:
+        if comp_in == 'temp':
+          tpar_idx = bimaxwellian_comp_idx['tpar']
+          tperp_idx = bimaxwellian_comp_idx['tperp']
+          x_out, tpar_out = get_interp_data_c2p(file, porder, basis, tpar_idx, kwargs['mapc2p'])
+          x_out, tperp_out = get_interp_data_c2p(file, porder, basis, tperp_idx, kwargs['mapc2p'])
+
+          return x_out, (tpar_out+2.0*tperp_out)/3.0
+        else:
+          comp_idx = maxwellian_comp_idx[comp_in]
+          x_out, data_out = get_interp_data_c2p(file, porder, basis, comp_idx, kwargs['mapc2p'])
+          return x_out, data_out
+      else:
+        print("getInterpDataComp: Component ", comp_in, " is not a valid option")
+        sys.exit(1)
 
 #................................................................................#
 
@@ -617,6 +659,84 @@ if plot_src_int_mom_vs_t:
       h5f.create_dataset('subplot01_line0_yvalues', np.shape(spl01_line0_y), dtype='f8', data=spl01_line0_y)
       h5f.create_dataset('subplot01_line1_xvalues', np.shape(spl01_line1_x), dtype='f8', data=spl01_line1_x)
       h5f.create_dataset('subplot01_line1_yvalues', np.shape(spl01_line1_y), dtype='f8', data=spl01_line1_y)
+      h5f.close()
+
+    fig_h.savefig(out_fig_dir+fig_file_name+figure_file_format)
+    plt.close()
+
+  else:
+    plt.show()
+
+#................................................................................#
+
+if plot_vs_RZ:
+  #[ Plot a variable on the R-Z midplane.
+
+  data_dir = '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-base/'
+
+  quant      = 'elc_BiMaxwellianMoments' #[ Quantity to plot.
+  quant_comp = 'temp'                    #[ Component in file (den, upar, tpar, tperp, temp, or an int).
+  scale_fac  = lcu.mass_elc/lcu.eV               #[ Factor to multiply data by.
+#  zlabel     = r'$n_e(\theta=0,t=0)$ (m$^{-3}$)'       #[ Label for y axis.
+#  zlabel     = r'$u_{\parallel e}(\theta=0,t=0)$ (m/s)'       #[ Label for y axis.
+  zlabel     = r'$T_e(t=0)$ (eV)'       #[ Label for y axis.
+  frame      = 0                         #[ Frame number.
+
+  fig_file_name_root = lcu.li863_prefix+'init_elc_den_RZ'
+
+  wall_file = '/global/homes/m/mana/perlmutter/gkeyll/code/gkyl-sims/ltx_gkeyll_xgc/experiment/LTXvessel.csv'
+
+  xlabel = r'$R$ (m)'
+  ylabel = r'$Z$ (m)'
+
+  file_path = data_dir+sim_name+'-'+quant+'_'+str(frame)+file_fmt
+  c2p_path  = data_dir+sim_name+'-mapc2p_deflated'+file_fmt
+
+  #[ Load the data.
+  xInt, data = getInterpDataComp(file_path, poly_order, basis_type, quant_comp, mapc2p=c2p_path)
+  data *= scale_fac
+
+  #[ Prepare figure.
+  fig_prop = (5.5, 5.8)
+  ax_pos   = [[0.15, 0.1, 0.65, 0.85],]
+  cbax_pos = [0.82, 0.1, 0.02, 0.85]
+  fig_h    = plt.figure(figsize=fig_prop)
+  ax_h     = [fig_h.add_axes(pos) for pos in ax_pos]
+  cbax_h   = fig_h.add_axes(cbax_pos)
+
+  ax_h[0].set_aspect('equal')
+
+  #[ Plot data
+  spl00_x = xInt[0]
+  spl00_y = xInt[1]
+  spl00_z = data
+
+  hpla = list()
+  hpla.append(ax_h[0].pcolormesh(spl00_x, spl00_y, spl00_z, cmap='inferno'))
+
+  #[ Plot wall
+  wall_data = np.loadtxt(open(wall_file),delimiter=',')
+  wall_h = ax_h[0].plot(wall_data[:,0],wall_data[:,1],color="grey")
+
+  hcba = plt.colorbar(hpla[0], ax=ax_h[0], cax=cbax_h)
+  hcba.ax.tick_params(labelsize=lcu.tick_font_size)
+  hcba.set_label(zlabel, rotation=90, labelpad=0, fontsize=lcu.colorbar_label_font_size)
+  hcba.ax.yaxis.get_offset_text().set_fontsize(lcu.tick_font_size)
+
+  ax_h[0].set_xlabel(xlabel, fontsize=lcu.xy_label_font_size)
+  ax_h[0].xaxis.get_offset_text().set_size(lcu.tick_font_size)
+  ax_h[0].set_ylabel(ylabel, fontsize=lcu.xy_label_font_size, labelpad=-3)
+  ax_h[0].yaxis.get_offset_text().set_size(lcu.tick_font_size)
+  lcu.set_tick_font_size(ax_h[0],lcu.tick_font_size)
+
+  if out_figure_file:
+    fig_file_name = output_prefix+fig_file_name_root
+
+    if save_data:
+      h5f = h5py.File(out_data_dir+fig_file_name+'.h5', "w")
+      h5f.create_dataset('subplot00_xvalues', np.shape(spl00_x), dtype='f8', data=spl00_x)
+      h5f.create_dataset('subplot00_yvalues', np.shape(spl00_y), dtype='f8', data=spl00_y)
+      h5f.create_dataset('subplot00_zvalues', np.shape(spl00_z), dtype='f8', data=spl00_z)
       h5f.close()
 
     fig_h.savefig(out_fig_dir+fig_file_name+figure_file_format)
