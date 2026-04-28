@@ -20,17 +20,18 @@ sys.path.insert(0, '../util/')
 import ltx_common_util as lcu
 
 #[ Plotting options.
-plot_grid_RZ      = False  #[ Plot grid on RZ plane.
-plot_vs_x         = False  #[ Plot a quantity at the outboard midplane.
-plot_nT_vs_x      = False  #[ Plot density and temperature profiles vs. x.
-plot_src_mom_vs_x = True  #[ Plot source moments vs. x.
+plot_grid_RZ          = False  #[ Plot grid on RZ plane.
+plot_vs_x             = False  #[ Plot a quantity at the outboard midplane.
+plot_nT_vs_x          = False  #[ Plot density and temperature profiles vs. x.
+plot_src_mom_vs_x     = False  #[ Plot source moments vs. x.
+plot_src_int_mom_vs_t = True  #[ Plot source integrated moments vs. t.
 
 out_data_dir  = './data/'
 out_fig_dir   = './figures/'
 output_prefix = 'ltx_gkeyll_'
 
-save_data          = True    #[ Indicate whether to save data in plot to HDF5 file.
-out_figure_file    = True     #[ Output a figure file?.
+save_data          = False    #[ Indicate whether to save data in plot to HDF5 file.
+out_figure_file    = False     #[ Output a figure file?.
 figure_file_format = '.png'    #[ Can be .png, .pdf, .ps, .eps, .svg.
 
 sim_name   = 'gk_ltx_iwl_2x2v_p1'      #[ Root name of files to process.
@@ -537,3 +538,91 @@ if plot_src_mom_vs_x:
 
   else:
     plt.show()
+
+#................................................................................#
+
+if plot_src_int_mom_vs_t:
+  #[ Plot source integrated moments vs. t:
+
+  data_dir = '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-base/'
+
+  xlabel = r'Time (ms)'
+  y_labels = [
+    r'$\dot{N}_{\mathrm{src}}$ (s$^{-1}$)',
+    r'$P_{\mathrm{src},s}$ (kW)',
+  ]
+
+  fig_file_name_root = lcu.li863_prefix+'src_Ndot_Power'
+
+  file_path = [
+    data_dir+sim_name+'-elc_source_integrated_moms'+file_fmt,
+    data_dir+sim_name+'-ion_source_integrated_moms'+file_fmt,
+  ]
+
+  #[ Load the data.
+  time, int_mom_elc = pgu.readDynVector(file_path[0])
+  time, int_mom_ion = pgu.readDynVector(file_path[1])
+
+  vol_fac = 2.0*np.pi
+  Ndot    = vol_fac*int_mom_elc[:,0]
+  pow_elc = vol_fac*0.5*lcu.mass_elc*int_mom_elc[:,2]
+  pow_ion = vol_fac*0.5*lcu.mass_ion*int_mom_ion[:,2]
+
+  #[ Conver time to ms and power to kW.
+  time *= 1e3
+  pow_elc *= 1e-3
+  pow_ion *= 1e-3
+
+  #[ Prepare figure.
+  fig_prop = (6., 5.)
+  ax_pos   = [[0.15, 0.54, 0.83, 0.40],
+              [0.15, 0.11, 0.83, 0.40],]
+  fig_h    = plt.figure(figsize=fig_prop)
+  ax_h     = [fig_h.add_axes(pos) for pos in ax_pos]
+
+  #[ Plot data
+  spl00_line0_x = time
+  spl01_line0_x = time
+  spl01_line1_x = time
+  spl00_line0_y = Ndot
+  spl01_line0_y = pow_elc
+  spl01_line1_y = pow_ion
+
+  hpla, hplb = list(), list()
+  hpla.append(ax_h[0].plot(spl00_line0_x, spl00_line0_y, color=lcu.default_colors[0], linestyle=lcu.default_line_styles[0], marker=lcu.default_markers[0]))
+  hplb.append(ax_h[1].plot(spl01_line0_x, spl01_line0_y, color=lcu.default_colors[0], linestyle=lcu.default_line_styles[0], marker=lcu.default_markers[0]))
+  hplb.append(ax_h[1].plot(spl01_line1_x, spl01_line1_y, color=lcu.default_colors[1], linestyle=lcu.default_line_styles[1], marker=lcu.default_markers[0]))
+
+  for i in range(len(ax_h)):
+    ax_h[i].set_ylabel(y_labels[i], fontsize=lcu.xy_label_font_size)
+    ax_h[i].yaxis.get_offset_text().set_size(lcu.tick_font_size)
+    lcu.set_tick_font_size(ax_h[i],lcu.tick_font_size)
+    ax_h[i].set_xlim(time[0], time[-1])
+  # end
+
+  ax_h[1].legend([hplb[0][0],hplb[1][0]],['e$^-$','H$^+$'],fontsize=lcu.legend_font_size, frameon=False, loc='upper right')
+  plt.setp( ax_h[0].get_xticklabels(), visible=False)
+  ax_h[1].set_xlabel(xlabel, fontsize=lcu.xy_label_font_size, labelpad=0)
+  ax_h[0].set_ylim(3.5e21, 3.8e21)
+  ax_h[1].set_ylim(100.0, 250.0)
+
+  if out_figure_file:
+    fig_file_name = output_prefix+fig_file_name_root
+
+    if save_data:
+      h5f = h5py.File(out_data_dir+fig_file_name+'.h5', "w")
+      h5f.create_dataset('subplot00_line0_xvalues', np.shape(spl00_line0_x), dtype='f8', data=spl00_line0_x)
+      h5f.create_dataset('subplot00_line0_yvalues', np.shape(spl00_line0_y), dtype='f8', data=spl00_line0_y)
+      h5f.create_dataset('subplot01_line0_xvalues', np.shape(spl01_line0_x), dtype='f8', data=spl01_line0_x)
+      h5f.create_dataset('subplot01_line0_yvalues', np.shape(spl01_line0_y), dtype='f8', data=spl01_line0_y)
+      h5f.create_dataset('subplot01_line1_xvalues', np.shape(spl01_line1_x), dtype='f8', data=spl01_line1_x)
+      h5f.create_dataset('subplot01_line1_yvalues', np.shape(spl01_line1_y), dtype='f8', data=spl01_line1_y)
+      h5f.close()
+
+    fig_h.savefig(out_fig_dir+fig_file_name+figure_file_format)
+    plt.close()
+
+  else:
+    plt.show()
+
+#................................................................................#
