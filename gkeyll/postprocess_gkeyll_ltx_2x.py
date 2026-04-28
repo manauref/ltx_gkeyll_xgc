@@ -20,16 +20,17 @@ sys.path.insert(0, '../util/')
 import ltx_common_util as lcu
 
 #[ Plotting options.
-plot_grid_RZ = False  #[ Plot grid on RZ plane.
-plot_vs_x    = False  #[ Plot a quantity at the outboard midplane.
-plot_nT_vs_x = True  #[ Plot density and temperature profiles vs. x.
+plot_grid_RZ      = False  #[ Plot grid on RZ plane.
+plot_vs_x         = False  #[ Plot a quantity at the outboard midplane.
+plot_nT_vs_x      = False  #[ Plot density and temperature profiles vs. x.
+plot_src_mom_vs_x = True  #[ Plot source moments vs. x.
 
 out_data_dir  = './data/'
 out_fig_dir   = './figures/'
 output_prefix = 'ltx_gkeyll_'
 
-save_data          = False    #[ Indicate whether to save data in plot to HDF5 file.
-out_figure_file    = False     #[ Output a figure file?.
+save_data          = True    #[ Indicate whether to save data in plot to HDF5 file.
+out_figure_file    = True     #[ Output a figure file?.
 figure_file_format = '.png'    #[ Can be .png, .pdf, .ps, .eps, .svg.
 
 sim_name   = 'gk_ltx_iwl_2x2v_p1'      #[ Root name of files to process.
@@ -39,7 +40,13 @@ sim_name   = 'gk_ltx_iwl_2x2v_p1'      #[ Root name of files to process.
 def get_equilibrium_meta(data_dir):
   #[ Return the axis and LCFS psi for a given shot based on the name.
   out_d = {}
-  if '103955_03' in data_dir:
+  if '103955_04' in data_dir:
+    out_d["R_axis"]    = 0.40045564 #[ R coord of the magnetic axis.
+    out_d["Z_axis"]    = 0 #[ Z coord of the magnetic axis.
+    out_d["psi_axis"]  = 1.188460310e-03 #[ psi at the magnetic axis.
+    out_d["psi_lcfs"]  = -5.632462250e-03 #[ LCFS psi coordinate for 863 mg shot (LTX_103955_03.eqdsk).
+    out_d["psi_conv"]  = out_d["psi_axis"] < out_d["psi_lcfs"] #[ =True psi increases outwards, =False it increases inwards.
+  elif '103955_03' in data_dir:
     out_d["R_axis"]    = 0.406052 #[ R coord of the magnetic axis.
     out_d["Z_axis"]    = 0 #[ Z coord of the magnetic axis.
     out_d["psi_axis"]  = 1.5428864200000001e-03 #[ psi at the magnetic axis.
@@ -100,9 +107,9 @@ def getInterpDataComp(file, porder, basis, comp_in):
 if plot_grid_RZ:
   #[ Plot the grid on the R-Z plane.
 
-  data_dir = '/Users/mfrancis/Documents/gkeyll/code/gkyl-sims/ltx/sim_data/numerical_eq/2x/li_863mg_103955_03/gn0/'
-  wall_coords = '/Users/mfrancis/Documents/gkeyll/code/gkyl-sims/ltx/sim_data/ltx_gkeyll_xgc/experiment/LTXvessel.csv'  
-  psi_pol = '/Users/mfrancis/Documents/gkeyll/code/gkyl-sims/ltx/sim_data/ltx_gkeyll_xgc/gkeyll/ltx_103955_03-psi.gkyl'
+  data_dir =    '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-base/'
+  wall_coords = '/global/homes/m/mana/perlmutter/gkeyll/code/gkyl-sims/ltx_gkeyll_xgc/experiment/LTXvessel.csv'  
+  psi_pol =     '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-base/LTX_103955_04-psi.gkyl'
   psi_contour = True
   psi_contour_num_levels = 30
 
@@ -174,7 +181,7 @@ if plot_grid_RZ:
 if plot_vs_x:
   #[ Plot a variable at the outboard midplane.
 
-  data_dir = '/Users/mfrancis/Documents/gkeyll/code/gkyl-sims/ltx/sim_data/numerical_eq/2x/li_863mg_103955_03/gn0/'
+  data_dir = '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-base/'
   x_axis_psi_N = True #[ Whether to put x-axis in rho_pol.
 
   quant      = 'elc_BiMaxwellianMoments' #[ Quantity to plot.
@@ -283,16 +290,19 @@ if plot_vs_x:
 if plot_nT_vs_x:
   #[ Plot density and temperature vs x:
 
-  data_dir = '/pscratch/sd/m/mana/gkeyll/ltx/2d/gn0_103955_03/'
+  data_dir = '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-base/'
 
   x_axis_psi_N = True #[ Whether to put x-axis in rho_pol.
   plot_exp_data = True #[ Whether to plot experimental data.
   
-  frame = 80   #[ Frame number.
+  frame = 20   #[ Frame number.
   y_labels = [
-    r'$n_e(\theta=0,t=4~\mathrm{ms})$ (m$^{-3}$)',
-    r'$T_e(\theta=0,t=4~\mathrm{ms})$ (eV)',
-    r'$T_i(\theta=0,t=4~\mathrm{ms})$ (eV)',
+#    r'$n_e(\theta=0,t=0)$ (m$^{-3}$)',
+#    r'$T_e(\theta=0,t=0)$ (eV)',
+#    r'$T_i(\theta=0,t=0)$ (eV)',
+    r'$n_e(\theta=0,t=1~\mathrm{ms})$ (m$^{-3}$)',
+    r'$T_e(\theta=0,t=1~\mathrm{ms})$ (eV)',
+    r'$T_i(\theta=0,t=1~\mathrm{ms})$ (eV)',
   ]
 
   fig_file_name_root = lcu.li863_prefix+'final_den_temp'
@@ -406,6 +416,120 @@ if plot_nT_vs_x:
         h5f.create_dataset('subplot01_line1_xvalues', np.shape(spl01_line1_x), dtype='f8', data=spl01_line1_x)
         h5f.create_dataset('subplot01_line1_yvalues', np.shape(spl01_line1_y), dtype='f8', data=spl01_line1_y)
       # end
+      h5f.close()
+
+    fig_h.savefig(out_fig_dir+fig_file_name+figure_file_format)
+    plt.close()
+
+  else:
+    plt.show()
+
+#................................................................................#
+
+if plot_src_mom_vs_x:
+  #[ Plot source moments vs. x:
+
+  data_dir = '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-base/'
+
+  x_axis_psi_N = True #[ Whether to put x-axis in rho_pol.
+  
+  frame = 0   #[ Frame number.
+  y_labels = [
+    r'$\dot{n}_{\mathrm{src}}$ (m$^{-3}$/s)',
+    r'$T_{\mathrm{src},s}$ (eV)',
+  ]
+
+  fig_file_name_root = lcu.li863_prefix+'src_den_temp'
+
+  plotz = 0.0 #[ Computational z coordinate to plot at.
+
+  file_path = [
+    data_dir+sim_name+'-elc_source_MaxwellianMoments_'+str(frame)+file_fmt,
+    data_dir+sim_name+'-ion_source_MaxwellianMoments_'+str(frame)+file_fmt,
+  ]
+
+  #[ Load the grid.
+  xIntC, _, nxIntC, lxIntC, dxIntC, _ = pgu.getGrid(file_path[0],poly_order,basis_type,location='center')
+  
+  #[ Get indices along z of slices we wish to plot:
+  z_coord = xIntC[1]
+  plotzIdx = np.argmin(np.abs(z_coord-plotz))
+
+  #[ Load the data.
+  elc_dens = getInterpDataComp(file_path[0], poly_order, basis_type, 'den')
+  elc_temp = (lcu.mass_elc/lcu.eV)*getInterpDataComp(file_path[0], poly_order, basis_type, 'temp')
+  ion_temp = (lcu.mass_ion/lcu.eV)*getInterpDataComp(file_path[1], poly_order, basis_type, 'temp')
+
+  elc_dens_slice = elc_dens[:,plotzIdx]
+  elc_temp_slice = elc_temp[:,plotzIdx]
+  ion_temp_slice = ion_temp[:,plotzIdx]
+
+  x_coord = xIntC[0]
+  xlabel = r'$\psi$ (T m$^2$)'
+  if x_axis_psi_N:
+    eq_meta = get_equilibrium_meta(data_dir)
+    x_coord = lcu.psi_N(x_coord, eq_meta["psi_lcfs"], eq_meta["psi_axis"])
+    xlabel = r'$\psi_N$'
+    print(f"  psi_N_min = {x_coord[0]:.9e}")
+    print(f"  psi_N_max = {x_coord[-1]:.9e}")
+    if not eq_meta["psi_conv"]:
+      x_coord = x_coord[::-1]
+      elc_dens_slice = elc_dens_slice[::-1]
+      elc_temp_slice = elc_temp_slice[::-1]
+      ion_temp_slice = ion_temp_slice[::-1]
+
+  #[ Prepare figure.
+  fig_prop = (6., 5.)
+  ax_pos   = [[0.15, 0.54, 0.83, 0.40],
+              [0.15, 0.11, 0.83, 0.40],]
+  fig_h    = plt.figure(figsize=fig_prop)
+  ax_h     = [fig_h.add_axes(pos) for pos in ax_pos]
+
+  #[ Plot data
+  spl00_line0_x = x_coord
+  spl01_line0_x = x_coord
+  spl01_line1_x = x_coord
+  spl00_line0_y = elc_dens_slice
+  spl01_line0_y = elc_temp_slice
+  spl01_line1_y = ion_temp_slice
+
+  hpla, hplb = list(), list()
+  hpla.append(ax_h[0].plot(spl00_line0_x, spl00_line0_y, color=lcu.default_colors[0], linestyle=lcu.default_line_styles[0], marker=lcu.default_markers[0]))
+  hplb.append(ax_h[1].plot(spl01_line0_x, spl01_line0_y, color=lcu.default_colors[0], linestyle=lcu.default_line_styles[0], marker=lcu.default_markers[0]))
+  hplb.append(ax_h[1].plot(spl01_line1_x, spl01_line1_y, color=lcu.default_colors[1], linestyle=lcu.default_line_styles[1], marker=lcu.default_markers[0]))
+
+  for i in range(len(ax_h)):
+    ax_h[i].set_ylabel(y_labels[i], fontsize=lcu.xy_label_font_size)
+    ax_h[i].yaxis.get_offset_text().set_size(lcu.tick_font_size)
+    lcu.set_tick_font_size(ax_h[i],lcu.tick_font_size)
+    ax_h[i].set_xlim(x_coord[0], x_coord[-1])
+  # end
+
+  ax_h[1].legend([hplb[0][0],hplb[1][0]],['e$^-$','H$^+$'],fontsize=lcu.legend_font_size, frameon=False, loc='upper right')
+  plt.setp( ax_h[0].get_xticklabels(), visible=False)
+  ax_h[1].set_xlabel(xlabel, fontsize=lcu.xy_label_font_size, labelpad=0)
+  ax_h[0].set_ylim(0.0, 7e22)
+  ax_h[1].set_ylim(0.0, 250.0)
+
+  if out_figure_file:
+    fig_file_suffix = 'z1slice'
+    if abs((plotz-z_coord[0])/z_coord[0]) < 1e-5:
+      fig_file_suffix = 'z1min'
+    elif abs(plotz-0.5*(z_coord[0]+z_coord[-1])) < 1e-5:
+      fig_file_suffix = 'z1mid'
+    elif abs((plotz-z_coord[-1])/z_coord[-1]) < 1e-5:
+      fig_file_suffix = 'z1max'
+
+    fig_file_name = output_prefix+fig_file_name_root+'_'+fig_file_suffix
+
+    if save_data:
+      h5f = h5py.File(out_data_dir+fig_file_name+'.h5', "w")
+      h5f.create_dataset('subplot00_line0_xvalues', np.shape(spl00_line0_x), dtype='f8', data=spl00_line0_x)
+      h5f.create_dataset('subplot00_line0_yvalues', np.shape(spl00_line0_y), dtype='f8', data=spl00_line0_y)
+      h5f.create_dataset('subplot01_line0_xvalues', np.shape(spl01_line0_x), dtype='f8', data=spl01_line0_x)
+      h5f.create_dataset('subplot01_line0_yvalues', np.shape(spl01_line0_y), dtype='f8', data=spl01_line0_y)
+      h5f.create_dataset('subplot01_line1_xvalues', np.shape(spl01_line1_x), dtype='f8', data=spl01_line1_x)
+      h5f.create_dataset('subplot01_line1_yvalues', np.shape(spl01_line1_y), dtype='f8', data=spl01_line1_y)
       h5f.close()
 
     fig_h.savefig(out_fig_dir+fig_file_name+figure_file_format)

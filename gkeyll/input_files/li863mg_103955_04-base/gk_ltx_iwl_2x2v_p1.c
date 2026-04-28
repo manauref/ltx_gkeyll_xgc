@@ -831,23 +831,23 @@ int main(int argc, char **argv)
     .diag_moments = { GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN, },
   };
 
-//  struct gkyl_poisson_bias_line target_corner_bcs[] = {
-//    {
-//     .perp_dirs = {0, 1}, // Directions perpendicular to line.
-//     .perp_coords = {ctx.psi_LCFS, ctx.z_min}, // Coordinates of the line in perpendicular directions.
-//     .val = 0.0, // Biasing value.
-//    },
-//    {
-//     .perp_dirs = {0, 1}, // Directions perpendicular to line.
-//     .perp_coords = {ctx.psi_LCFS, ctx.z_max}, // Coordinates of the line in perpendicular directions.
-//     .val = 0.0, // Biasing value.
-//    },
-//  };
-//
-//  struct gkyl_poisson_bias_line_list bias_line_list = {
-//    .num_bias_line = 2,
-//    .bl = target_corner_bcs,
-//  };
+  struct gkyl_poisson_bias_line target_corner_bcs[] = {
+    {
+     .perp_dirs = {0, 1}, // Directions perpendicular to line.
+     .perp_coords = {ctx.psi_LCFS, ctx.z_min}, // Coordinates of the line in perpendicular directions.
+     .val = 0.0, // Biasing value.
+    },
+    {
+     .perp_dirs = {0, 1}, // Directions perpendicular to line.
+     .perp_coords = {ctx.psi_LCFS, ctx.z_max}, // Coordinates of the line in perpendicular directions.
+     .val = 0.0, // Biasing value.
+    },
+  };
+
+  struct gkyl_poisson_bias_line_list bias_line_list = {
+    .num_bias_line = 2,
+    .bl = target_corner_bcs,
+  };
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
@@ -856,7 +856,7 @@ int main(int argc, char **argv)
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}, },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}, },
     },
-//    .bias_line_list = &bias_line_list,
+    .bias_line_list = &bias_line_list,
   };
 
   struct gkyl_efit_inp efit_inp = {
