@@ -676,15 +676,17 @@ if plot_vs_RZ:
 
   data_dir = '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-base/'
 
-  quant      = 'elc_BiMaxwellianMoments' #[ Quantity to plot.
+  quant      = 'ion_BiMaxwellianMoments' #[ Quantity to plot.
   quant_comp = 'tperp'                    #[ Component in file (den, upar, tpar, tperp, temp, or an int).
-  scale_fac  = lcu.mass_elc/lcu.eV               #[ Factor to multiply data by.
-#  zlabel     = r'$n_e(\theta=0,t=0)$ (m$^{-3}$)'       #[ Label for y axis.
-#  zlabel     = r'$u_{\parallel e}(\theta=0,t=0)$ (m/s)'       #[ Label for y axis.
-  zlabel     = r'$T_{\perp e}(t=1~\mathrm{ms})$ (eV)'       #[ Label for y axis.
+  scale_fac  = 1.0               #[ Factor to multiply data by.
+  scale_fac  = lcu.mass_ion/lcu.eV               #[ Factor to multiply data by.
+#  zlabel     = r'$n_i(t=1~\mathrm{ms})$ (m$^{-3}$)'       #[ Label for y axis.
+#  zlabel     = r'$u_{\parallel i}(t=1~\mathrm{ms})$ (m/s)'       #[ Label for y axis.
+#  zlabel     = r'$T_{\parallel i}(t=1~\mathrm{ms})$ (eV)'       #[ Label for y axis.
+  zlabel     = r'$T_{\perp i}(t=1~\mathrm{ms})$ (eV)'       #[ Label for y axis.
   frame      = 20                         #[ Frame number.
 
-  fig_file_name_root = lcu.li863_prefix+'final_elc_tperp_RZ'
+  fig_file_name_root = lcu.li863_prefix+'final_ion_tperp_RZ'
 
   wall_file = '/global/homes/m/mana/perlmutter/gkeyll/code/gkyl-sims/ltx_gkeyll_xgc/experiment/LTXvessel.csv'
 
