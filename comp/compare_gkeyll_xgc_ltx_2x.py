@@ -27,7 +27,7 @@ plot_grids_RZ_li863mg           = False  #[ Grids on the R-Z plane of 863 mg sim
 plot_den_omp_init_li863mg       = False  #[ Initial n at outboard midplane (OMP) of 863 mg simulation.
 plot_den_temp_omp_init_li863mg  = False  #[ Initial n and T profiles at OMP.
 plot_den_temp_omp_final_li863mg = False  #[ Final n and T profiles at OMP.
-plot_den_temp_RZ_final_li863mg  = True  #[ Final n and T profiles on R-Z plane.
+plot_moms_RZ_final_li863mg      = True  #[ Final n, upar, Tpar and Tperp profiles on R-Z plane.
 
 gke_data_dir = '../gkeyll/data/' #[ Location of reduced Gkeyll data.
 xgc_data_dir = '../xgc/data/' #[ Location of reduced XGC data.
@@ -339,8 +339,9 @@ if plot_den_temp_omp_final_li863mg:
 
 #................................................................................#
 
-if plot_den_temp_RZ_final_li863mg:
-  #[ Final n and T profiles on R-Z plane.
+if plot_moms_RZ_final_li863mg:
+  #[ Final n, upar, Tpar and Tperp profiles on R-Z plane.
+  fig_name = lcu.li863_prefix+'final_moms_RZ'
 
   species = 'ion' #[ Species name, 'elc' or 'ion'
 
@@ -407,18 +408,24 @@ if plot_den_temp_RZ_final_li863mg:
   for i in range(len(ax_h)):
     ax_h[i].set_aspect('equal')
 
+  zmin, zmax = np.zeros(4), np.zeros(4)
+  zmin[0], zmax[0] = min(np.amin(spl00_z),np.amin(spl10_z)), max(np.amax(spl00_z),np.amax(spl10_z))
+  zmin[1], zmax[1] = min(np.amin(spl01_z),np.amin(spl11_z)), max(np.amax(spl01_z),np.amax(spl11_z))
+  zmin[2], zmax[2] = min(np.amin(spl02_z),np.amin(spl12_z)), max(np.amax(spl02_z),np.amax(spl12_z))
+  zmin[3], zmax[3] = min(np.amin(spl03_z),np.amin(spl13_z)), max(np.amax(spl03_z),np.amax(spl13_z))
+
   #[ Plot data.
   hpla, hplb, hplc, hpld = list(), list(), list(), list(),
-  hpla.append(ax_h[0].pcolormesh(spl00_x, spl00_y, spl00_z, cmap='inferno'))
-  hplb.append(ax_h[1].pcolormesh(spl01_x, spl01_y, spl01_z, cmap='inferno'))
-  hplc.append(ax_h[2].pcolormesh(spl02_x, spl02_y, spl02_z, cmap='inferno'))
-  hpld.append(ax_h[3].pcolormesh(spl03_x, spl03_y, spl03_z, cmap='inferno'))
+  hpla.append(ax_h[0].pcolormesh(spl00_x, spl00_y, spl00_z, cmap='inferno', vmin=zmin[0], vmax=zmax[0]))
+  hplb.append(ax_h[1].pcolormesh(spl01_x, spl01_y, spl01_z, cmap='inferno', vmin=zmin[1], vmax=zmax[1]))
+  hplc.append(ax_h[2].pcolormesh(spl02_x, spl02_y, spl02_z, cmap='inferno', vmin=zmin[2], vmax=zmax[2]))
+  hpld.append(ax_h[3].pcolormesh(spl03_x, spl03_y, spl03_z, cmap='inferno', vmin=zmin[3], vmax=zmax[3]))
 
   hple, hplf, hplg, hplh = list(), list(), list(), list(),
-  hple.append(ax_h[4+0].pcolormesh(spl10_x, spl10_y, spl10_z, cmap='inferno'))
-  hplf.append(ax_h[4+1].pcolormesh(spl11_x, spl11_y, spl11_z, cmap='inferno'))
-  hplg.append(ax_h[4+2].pcolormesh(spl12_x, spl12_y, spl12_z, cmap='inferno'))
-  hplh.append(ax_h[4+3].pcolormesh(spl13_x, spl13_y, spl13_z, cmap='inferno'))
+  hple.append(ax_h[4+0].pcolormesh(spl10_x, spl10_y, spl10_z, cmap='inferno', vmin=zmin[0], vmax=zmax[0]))
+  hplf.append(ax_h[4+1].pcolormesh(spl11_x, spl11_y, spl11_z, cmap='inferno', vmin=zmin[1], vmax=zmax[1]))
+  hplg.append(ax_h[4+2].pcolormesh(spl12_x, spl12_y, spl12_z, cmap='inferno', vmin=zmin[2], vmax=zmax[2]))
+  hplh.append(ax_h[4+3].pcolormesh(spl13_x, spl13_y, spl13_z, cmap='inferno', vmin=zmin[3], vmax=zmax[3]))
 
   #[ Plot wall
   wall_data = np.loadtxt(open(wall_file),delimiter=',')
@@ -446,8 +453,10 @@ if plot_den_temp_RZ_final_li863mg:
   ax_h[0].yaxis.get_offset_text().set_size(lcu.tick_font_size)
   ax_h[4].set_ylabel(ylabel, fontsize=lcu.xy_label_font_size, labelpad=-3)
   ax_h[4].yaxis.get_offset_text().set_size(lcu.tick_font_size)
+  txt_labels = ['(a)','(b)','(c)','(d)','(e)','(f)','(g)','(h)',]
   for i in range(len(ax_h)):
     lcu.set_tick_font_size(ax_h[i],lcu.tick_font_size)
+    plt.text(0.8, 0.9, txt_labels[i], fontsize=lcu.text_font_size, color='black', transform=ax_h[i].transAxes,)
 
   plt.text(-0.6, 0.34, r'Gkeyll', fontsize=32, color='black', transform=ax_h[0].transAxes, rotation=90,)
   plt.text(-0.6, 0.39, r'XGC', fontsize=32, color='black', transform=ax_h[4].transAxes, rotation=90,)
@@ -457,18 +466,38 @@ if plot_den_temp_RZ_final_li863mg:
   plt.text(0.3, 1.05, r'$T_{:s}$ (eV)'.format('{\perp '+species[0]+'}')      , fontsize=20, color='black', transform=ax_h[3].transAxes,)
 
   if output_figure_file:
-    fig_file_name = output_prefix+fig_file_name_root
+    fig_file_name = output_prefix+fig_name
 
     if save_data:
       h5f = h5py.File(out_data_dir+fig_file_name+'.h5', "w")
       h5f.create_dataset('subplot00_xvalues', np.shape(spl00_x), dtype='f8', data=spl00_x)
       h5f.create_dataset('subplot00_yvalues', np.shape(spl00_y), dtype='f8', data=spl00_y)
       h5f.create_dataset('subplot00_zvalues', np.shape(spl00_z), dtype='f8', data=spl00_z)
+      h5f.create_dataset('subplot01_xvalues', np.shape(spl01_x), dtype='f8', data=spl01_x)
+      h5f.create_dataset('subplot01_yvalues', np.shape(spl01_y), dtype='f8', data=spl01_y)
+      h5f.create_dataset('subplot01_zvalues', np.shape(spl01_z), dtype='f8', data=spl01_z)
+      h5f.create_dataset('subplot02_xvalues', np.shape(spl02_x), dtype='f8', data=spl02_x)
+      h5f.create_dataset('subplot02_yvalues', np.shape(spl02_y), dtype='f8', data=spl02_y)
+      h5f.create_dataset('subplot02_zvalues', np.shape(spl02_z), dtype='f8', data=spl02_z)
+      h5f.create_dataset('subplot03_xvalues', np.shape(spl03_x), dtype='f8', data=spl03_x)
+      h5f.create_dataset('subplot03_yvalues', np.shape(spl03_y), dtype='f8', data=spl03_y)
+      h5f.create_dataset('subplot03_zvalues', np.shape(spl03_z), dtype='f8', data=spl03_z)
+      h5f.create_dataset('subplot10_xvalues', np.shape(spl10_x), dtype='f8', data=spl10_x)
+      h5f.create_dataset('subplot10_yvalues', np.shape(spl10_y), dtype='f8', data=spl10_y)
+      h5f.create_dataset('subplot10_zvalues', np.shape(spl10_z), dtype='f8', data=spl10_z)
+      h5f.create_dataset('subplot11_xvalues', np.shape(spl11_x), dtype='f8', data=spl11_x)
+      h5f.create_dataset('subplot11_yvalues', np.shape(spl11_y), dtype='f8', data=spl11_y)
+      h5f.create_dataset('subplot11_zvalues', np.shape(spl11_z), dtype='f8', data=spl11_z)
+      h5f.create_dataset('subplot12_xvalues', np.shape(spl12_x), dtype='f8', data=spl12_x)
+      h5f.create_dataset('subplot12_yvalues', np.shape(spl12_y), dtype='f8', data=spl12_y)
+      h5f.create_dataset('subplot12_zvalues', np.shape(spl12_z), dtype='f8', data=spl12_z)
+      h5f.create_dataset('subplot13_xvalues', np.shape(spl13_x), dtype='f8', data=spl13_x)
+      h5f.create_dataset('subplot13_yvalues', np.shape(spl13_y), dtype='f8', data=spl13_y)
+      h5f.create_dataset('subplot13_zvalues', np.shape(spl13_z), dtype='f8', data=spl13_z)
       h5f.close()
 
     fig_h.savefig(out_fig_dir+fig_file_name+figure_file_format)
     plt.close()
-
   else:
     plt.show()
 
