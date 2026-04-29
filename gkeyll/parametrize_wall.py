@@ -45,16 +45,18 @@ def parametrize_curve(points, num_interp):
 
 #[ Load the divertor plate coordinates.
 #points = np.loadtxt(open('./LTX_VV_103955_468ms.csv'),delimiter=',')
-points = np.loadtxt(open('./LTX_shell_limiter-103955_04.csv'),delimiter=',')
+#points = np.loadtxt(open('./LTX_shell_limiter-103955_04.csv'),delimiter=',')
+points = np.loadtxt(open('./LTX_shell_limiter-103795_03.csv'),delimiter=',')
 ##[ Sometimes the divertor plate coordinates need sorting.
 #points = np.sort(points, axis=1)
 #points[:,0] = points[-1::-1,0]
 #points[:,1] = points[-1::-1,1]
 
 #[ Shift points left of
-#[   (R,Z) = (0.1411208988576905, 0.0)
+#[   (R,Z) = (0.1411208988576905, 0.0) for 103955_04
+#[   (R,Z) = (0.1407097369409848, 0.0) for 103795_03
 #[ to lie on this R. This is the R of psi_LCFS at Z=0. Otherwise Gkeyll geo generation gets messed up.
-R_LCFS_Z_mid = 0.1411208988576905
+R_LCFS_Z_mid = 0.1407097369409848
 points[:,0] = np.maximum(R_LCFS_Z_mid, points[:,0])
 
 t, x_t, y_t = parametrize_curve(points, num_interp)

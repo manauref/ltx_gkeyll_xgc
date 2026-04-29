@@ -83,6 +83,8 @@ struct ltx_lower_vessel_info {
 
 void
 get_ltx_lower_vessel_info(struct ltx_lower_vessel_info *vvi) {
+  // Must go through (R(s=0),Z(s=0)) = (0.1411208988576905, 0.0).
+  // May need manual modification to avoid anomalies too.
   const int npts = 100;
   double t[] = {
     0.        , 0.01010101, 0.02020202, 0.03030303, 0.04040404, 0.05050505,
@@ -141,7 +143,7 @@ get_ltx_lower_vessel_info(struct ltx_lower_vessel_info *vvi) {
     -0.15354707, -0.14537406, -0.13708584, -0.12868123, -0.12017003, -0.11156161,
     -0.10286232, -0.09407201, -0.0851854 , -0.0762    
   };
-  vvi->num_points = 100;
+  vvi->num_points = npts;
   for (int i=0; i<npts; i++) {
     vvi->t[i] = t[i];
     vvi->R[i] = R[i];
