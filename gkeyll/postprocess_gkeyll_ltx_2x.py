@@ -101,19 +101,20 @@ def getInterpDataComp(file, porder, basis, comp_in, **kwargs):
       return np.squeeze(pgu.getInterpData(file, porder, basis, comp=comp_in))
 
     elif isinstance(comp_in,str):
-      if 'MaxwellianMoments' in file:
-        comp_idx = maxwellian_comp_idx[comp_in]
-        return np.squeeze(pgu.getInterpData(file, porder, basis, comp=comp_idx))
-    
-      elif 'BiMaxwellianMoments' in file:
+      if 'BiMaxwellianMoments' in file:
         if comp_in == 'temp':
           tpar_idx = bimaxwellian_comp_idx['tpar']
           tperp_idx = bimaxwellian_comp_idx['tperp']
           return np.squeeze( (    pgu.getInterpData(file, porder, basis, comp=tpar_idx) + \
                               2.0*pgu.getInterpData(file, porder, basis, comp=tperp_idx) )/3.0 )
         else:
-          comp_idx = maxwellian_comp_idx[comp_in]
+          comp_idx = bimaxwellian_comp_idx[comp_in]
           return np.squeeze(pgu.getInterpData(file, porder, basis, comp=comp_idx))
+
+      elif 'MaxwellianMoments' in file:
+        comp_idx = maxwellian_comp_idx[comp_in]
+        return np.squeeze(pgu.getInterpData(file, porder, basis, comp=comp_idx))
+    
       else:
         print("getInterpDataComp: Component ", comp_in, " is not a valid option")
         sys.exit(1)
@@ -124,12 +125,7 @@ def getInterpDataComp(file, porder, basis, comp_in, **kwargs):
       return x_out, data_out
 
     elif isinstance(comp_in,str):
-      if 'MaxwellianMoments' in file:
-        comp_idx = maxwellian_comp_idx[comp_in]
-        x_out, data_out = get_interp_data_c2p(file, porder, basis, comp_idx, kwargs['mapc2p'])
-        return x_out, data_out
-    
-      elif 'BiMaxwellianMoments' in file:
+      if 'BiMaxwellianMoments' in file:
         if comp_in == 'temp':
           tpar_idx = bimaxwellian_comp_idx['tpar']
           tperp_idx = bimaxwellian_comp_idx['tperp']
@@ -138,9 +134,15 @@ def getInterpDataComp(file, porder, basis, comp_in, **kwargs):
 
           return x_out, (tpar_out+2.0*tperp_out)/3.0
         else:
-          comp_idx = maxwellian_comp_idx[comp_in]
+          comp_idx = bimaxwellian_comp_idx[comp_in]
           x_out, data_out = get_interp_data_c2p(file, porder, basis, comp_idx, kwargs['mapc2p'])
           return x_out, data_out
+
+      elif 'MaxwellianMoments' in file:
+        comp_idx = maxwellian_comp_idx[comp_in]
+        x_out, data_out = get_interp_data_c2p(file, porder, basis, comp_idx, kwargs['mapc2p'])
+        return x_out, data_out
+    
       else:
         print("getInterpDataComp: Component ", comp_in, " is not a valid option")
         sys.exit(1)
@@ -675,14 +677,14 @@ if plot_vs_RZ:
   data_dir = '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-base/'
 
   quant      = 'elc_BiMaxwellianMoments' #[ Quantity to plot.
-  quant_comp = 'temp'                    #[ Component in file (den, upar, tpar, tperp, temp, or an int).
+  quant_comp = 'tperp'                    #[ Component in file (den, upar, tpar, tperp, temp, or an int).
   scale_fac  = lcu.mass_elc/lcu.eV               #[ Factor to multiply data by.
 #  zlabel     = r'$n_e(\theta=0,t=0)$ (m$^{-3}$)'       #[ Label for y axis.
 #  zlabel     = r'$u_{\parallel e}(\theta=0,t=0)$ (m/s)'       #[ Label for y axis.
-  zlabel     = r'$T_e(t=0)$ (eV)'       #[ Label for y axis.
-  frame      = 0                         #[ Frame number.
+  zlabel     = r'$T_{\perp e}(t=1~\mathrm{ms})$ (eV)'       #[ Label for y axis.
+  frame      = 20                         #[ Frame number.
 
-  fig_file_name_root = lcu.li863_prefix+'init_elc_den_RZ'
+  fig_file_name_root = lcu.li863_prefix+'final_elc_tperp_RZ'
 
   wall_file = '/global/homes/m/mana/perlmutter/gkeyll/code/gkyl-sims/ltx_gkeyll_xgc/experiment/LTXvessel.csv'
 
