@@ -25,8 +25,9 @@ import ltx_common_util as lcu
 
 plot_grids_RZ_li863mg           = False  #[ Grids on the R-Z plane of 863 mg simulation.
 plot_den_omp_init_li863mg       = False  #[ Initial n at outboard midplane (OMP) of 863 mg simulation.
-plot_den_temp_omp_init_li863mg  = True  #[ Initial n and T profiles at OMP.
+plot_den_temp_omp_init_li863mg  = False  #[ Initial n and T profiles at OMP.
 plot_den_temp_omp_final_li863mg = False  #[ Final n and T profiles at OMP.
+plot_den_temp_RZ_final_li863mg  = True  #[ Final n and T profiles on R-Z plane.
 
 gke_data_dir = '../gkeyll/data/' #[ Location of reduced Gkeyll data.
 xgc_data_dir = '../xgc/data/' #[ Location of reduced XGC data.
@@ -338,3 +339,137 @@ if plot_den_temp_omp_final_li863mg:
 
 #................................................................................#
 
+if plot_den_temp_RZ_final_li863mg:
+  #[ Final n and T profiles on R-Z plane.
+
+  species = 'ion' #[ Species name, 'elc' or 'ion'
+
+  gke_data_file = [
+    gke_data_dir+'ltx_gkeyll_li863mg_final_'+species+'_den_RZ.h5',
+    gke_data_dir+'ltx_gkeyll_li863mg_final_'+species+'_upar_RZ.h5',
+    gke_data_dir+'ltx_gkeyll_li863mg_final_'+species+'_tpar_RZ.h5',
+    gke_data_dir+'ltx_gkeyll_li863mg_final_'+species+'_tperp_RZ.h5',
+  ]
+  xgc_data_file = [
+    gke_data_dir+'ltx_gkeyll_li863mg_final_'+species+'_den_RZ.h5',
+    gke_data_dir+'ltx_gkeyll_li863mg_final_'+species+'_upar_RZ.h5',
+    gke_data_dir+'ltx_gkeyll_li863mg_final_'+species+'_tpar_RZ.h5',
+    gke_data_dir+'ltx_gkeyll_li863mg_final_'+species+'_tperp_RZ.h5',
+  ]
+
+  wall_file = '/global/homes/m/mana/perlmutter/gkeyll/code/gkyl-sims/ltx_gkeyll_xgc/experiment/LTXvessel.csv'
+
+  xlabel = r'$R$ (m)'
+  ylabel = r'$Z$ (m)'
+
+  #[ Load data.
+  gke_data = [h5py.File(gke_data_file[i], "r") for i in range(len(gke_data_file))]
+  spl00_x = lcu.h5data_to_numpy_array(gke_data[0], 'subplot00_xvalues')
+  spl00_y = lcu.h5data_to_numpy_array(gke_data[0], 'subplot00_yvalues')
+  spl00_z = lcu.h5data_to_numpy_array(gke_data[0], 'subplot00_zvalues')
+  spl01_x = lcu.h5data_to_numpy_array(gke_data[1], 'subplot00_xvalues')
+  spl01_y = lcu.h5data_to_numpy_array(gke_data[1], 'subplot00_yvalues')
+  spl01_z = lcu.h5data_to_numpy_array(gke_data[1], 'subplot00_zvalues')
+  spl02_x = lcu.h5data_to_numpy_array(gke_data[2], 'subplot00_xvalues')
+  spl02_y = lcu.h5data_to_numpy_array(gke_data[2], 'subplot00_yvalues')
+  spl02_z = lcu.h5data_to_numpy_array(gke_data[2], 'subplot00_zvalues')
+  spl03_x = lcu.h5data_to_numpy_array(gke_data[3], 'subplot00_xvalues')
+  spl03_y = lcu.h5data_to_numpy_array(gke_data[3], 'subplot00_yvalues')
+  spl03_z = lcu.h5data_to_numpy_array(gke_data[3], 'subplot00_zvalues')
+  for i in range(len(gke_data_file)):
+    gke_data[i].close()
+
+  xgc_data = [h5py.File(xgc_data_file[i], "r") for i in range(len(xgc_data_file))]
+  spl10_x = lcu.h5data_to_numpy_array(xgc_data[0], 'subplot00_xvalues')
+  spl10_y = lcu.h5data_to_numpy_array(xgc_data[0], 'subplot00_yvalues')
+  spl10_z = lcu.h5data_to_numpy_array(xgc_data[0], 'subplot00_zvalues')
+  spl11_x = lcu.h5data_to_numpy_array(xgc_data[1], 'subplot00_xvalues')
+  spl11_y = lcu.h5data_to_numpy_array(xgc_data[1], 'subplot00_yvalues')
+  spl11_z = lcu.h5data_to_numpy_array(xgc_data[1], 'subplot00_zvalues')
+  spl12_x = lcu.h5data_to_numpy_array(xgc_data[2], 'subplot00_xvalues')
+  spl12_y = lcu.h5data_to_numpy_array(xgc_data[2], 'subplot00_yvalues')
+  spl12_z = lcu.h5data_to_numpy_array(xgc_data[2], 'subplot00_zvalues')
+  spl13_x = lcu.h5data_to_numpy_array(xgc_data[3], 'subplot00_xvalues')
+  spl13_y = lcu.h5data_to_numpy_array(xgc_data[3], 'subplot00_yvalues')
+  spl13_z = lcu.h5data_to_numpy_array(xgc_data[3], 'subplot00_zvalues')
+  for i in range(len(xgc_data_file)):
+    xgc_data[i].close()
+
+  #[ Prepare figure.
+  fig_prop  = (16., 8.)
+  ax_pos    = [[0.08, 0.52, 0.20, 0.40],[0.29, 0.52, 0.20, 0.40],[0.50, 0.52, 0.20, 0.40],[0.71, 0.52, 0.20, 0.40],
+               [0.08, 0.10, 0.20, 0.40],[0.29, 0.10, 0.20, 0.40],[0.50, 0.10, 0.20, 0.40],[0.71, 0.10, 0.20, 0.40], ]
+  cbax_pos  = [[0.26, 0.10, 0.01, 0.82],[0.47, 0.10, 0.01, 0.82],[0.68, 0.10, 0.01, 0.82],[0.89, 0.10, 0.01, 0.82], ]
+  fig_h     = plt.figure(figsize=fig_prop)
+  ax_h      = [fig_h.add_axes(pos) for pos in ax_pos]
+  cbax_h    = [fig_h.add_axes(pos) for pos in cbax_pos]
+
+  for i in range(len(ax_h)):
+    ax_h[i].set_aspect('equal')
+
+  #[ Plot data.
+  hpla, hplb, hplc, hpld = list(), list(), list(), list(),
+  hpla.append(ax_h[0].pcolormesh(spl00_x, spl00_y, spl00_z, cmap='inferno'))
+  hplb.append(ax_h[1].pcolormesh(spl01_x, spl01_y, spl01_z, cmap='inferno'))
+  hplc.append(ax_h[2].pcolormesh(spl02_x, spl02_y, spl02_z, cmap='inferno'))
+  hpld.append(ax_h[3].pcolormesh(spl03_x, spl03_y, spl03_z, cmap='inferno'))
+
+  hple, hplf, hplg, hplh = list(), list(), list(), list(),
+  hple.append(ax_h[4+0].pcolormesh(spl10_x, spl10_y, spl10_z, cmap='inferno'))
+  hplf.append(ax_h[4+1].pcolormesh(spl11_x, spl11_y, spl11_z, cmap='inferno'))
+  hplg.append(ax_h[4+2].pcolormesh(spl12_x, spl12_y, spl12_z, cmap='inferno'))
+  hplh.append(ax_h[4+3].pcolormesh(spl13_x, spl13_y, spl13_z, cmap='inferno'))
+
+  #[ Plot wall
+  wall_data = np.loadtxt(open(wall_file),delimiter=',')
+  wall_h = list()
+  for i in range(len(ax_h)):
+    wall_h.append(ax_h[i].plot(wall_data[:,0],wall_data[:,1],color="grey"))
+
+  #[ Add colorbar.
+  hpl_gke = [hpla, hplb, hplc, hpld]
+  hcb_all = [plt.colorbar(hpl_gke[i][0], ax=ax_h[i], cax=cbax_h[i]) for i in range(len(hpl_gke))]
+  for i in range(len(hcb_all)):
+    hcb_all[i].ax.tick_params(labelsize=lcu.tick_font_size)
+    hcb_all[i].ax.yaxis.get_offset_text().set_fontsize(lcu.tick_font_size)
+
+  for i in range(4):
+    ax_h[4+i].set_xlabel(xlabel, fontsize=lcu.xy_label_font_size)
+    ax_h[4+i].xaxis.get_offset_text().set_size(lcu.tick_font_size)
+    plt.setp( ax_h[i].get_xticklabels(), visible=False)
+
+  for i in range(3):
+    plt.setp( ax_h[1+i].get_yticklabels(), visible=False)
+    plt.setp( ax_h[5+i].get_yticklabels(), visible=False)
+
+  ax_h[0].set_ylabel(ylabel, fontsize=lcu.xy_label_font_size, labelpad=-3)
+  ax_h[0].yaxis.get_offset_text().set_size(lcu.tick_font_size)
+  ax_h[4].set_ylabel(ylabel, fontsize=lcu.xy_label_font_size, labelpad=-3)
+  ax_h[4].yaxis.get_offset_text().set_size(lcu.tick_font_size)
+  for i in range(len(ax_h)):
+    lcu.set_tick_font_size(ax_h[i],lcu.tick_font_size)
+
+  plt.text(-0.6, 0.34, r'Gkeyll', fontsize=32, color='black', transform=ax_h[0].transAxes, rotation=90,)
+  plt.text(-0.6, 0.39, r'XGC', fontsize=32, color='black', transform=ax_h[4].transAxes, rotation=90,)
+  plt.text(0.3, 1.05, r'$n_{:s}$ (m${:s}$)'.format(species[0],'^{-3}')       , fontsize=20, color='black', transform=ax_h[0].transAxes,)
+  plt.text(0.3, 1.05, r'$u_{:s}$ (km/s)'.format('{\parallel '+species[0]+'}'), fontsize=20, color='black', transform=ax_h[1].transAxes,)
+  plt.text(0.3, 1.05, r'$T_{:s}$ (eV)'.format('{\parallel '+species[0]+'}')  , fontsize=20, color='black', transform=ax_h[2].transAxes,)
+  plt.text(0.3, 1.05, r'$T_{:s}$ (eV)'.format('{\perp '+species[0]+'}')      , fontsize=20, color='black', transform=ax_h[3].transAxes,)
+
+  if output_figure_file:
+    fig_file_name = output_prefix+fig_file_name_root
+
+    if save_data:
+      h5f = h5py.File(out_data_dir+fig_file_name+'.h5', "w")
+      h5f.create_dataset('subplot00_xvalues', np.shape(spl00_x), dtype='f8', data=spl00_x)
+      h5f.create_dataset('subplot00_yvalues', np.shape(spl00_y), dtype='f8', data=spl00_y)
+      h5f.create_dataset('subplot00_zvalues', np.shape(spl00_z), dtype='f8', data=spl00_z)
+      h5f.close()
+
+    fig_h.savefig(out_fig_dir+fig_file_name+figure_file_format)
+    plt.close()
+
+  else:
+    plt.show()
+
+#................................................................................#
