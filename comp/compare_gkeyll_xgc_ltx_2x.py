@@ -24,7 +24,7 @@ import sys #[ For error exit.
 sys.path.insert(0, '../util/')
 import ltx_common_util as lcu
 
-plot_grids_RZ_li863mg           = True  #[ Grids on the R-Z plane of 863 mg simulation.
+plot_grids_RZ_li863mg           = False  #[ Grids on the R-Z plane of 863 mg simulation.
 plot_den_omp_init_li863mg       = False  #[ Initial n at outboard midplane (OMP) of 863 mg simulation.
 plot_den_temp_omp_init_li863mg  = False  #[ Initial n and T profiles at OMP.
 plot_den_temp_omp_final_li863mg = False  #[ Final n and T profiles at OMP.
@@ -345,6 +345,22 @@ if plot_den_temp_omp_final_li863mg:
 #................................................................................#
 
 if plot_moms_RZ_final_li863mg:
+
+  xgc_mesh_file= xgc_data_dir+'ltx_xgc_li863mg_grid_RZ.h5'
+  xgc_mesh_data = h5py.File(xgc_mesh_file, "r")
+  rnodes      = lcu.h5data_to_numpy_array(xgc_mesh_data, 'subplot00_nodes_xvalues')
+  znodes     = lcu.h5data_to_numpy_array(xgc_mesh_data, 'subplot00_nodes_yvalues')
+  conn = lcu.h5data_to_numpy_array(xgc_mesh_data, 'subplot00_line_connections')
+#  xgc_spl00_edges_constx = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_edges_constx')
+#  xgc_spl00_edges_consty = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_edges_consty')
+#  xgc_spl00_psi_x        = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_psi_xvalues')
+#  xgc_spl00_psi_y        = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_psi_yvalues')
+#  xgc_spl00_psi_z        = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_psi_zvalues')
+  xgc_mesh_data.close()
+
+  triang = mtri.Triangulation(rnodes,znodes,conn)
+
+
   #[ Final n, upar, Tpar and Tperp profiles on R-Z plane.
   fig_name = lcu.li863_prefix+'final_moms_RZ'
 
@@ -357,10 +373,10 @@ if plot_moms_RZ_final_li863mg:
     gke_data_dir+'ltx_gkeyll_li863mg_final_'+species+'_tperp_RZ.h5',
   ]
   xgc_data_file = [
-    gke_data_dir+'ltx_gkeyll_li863mg_final_'+species+'_den_RZ.h5',
-    gke_data_dir+'ltx_gkeyll_li863mg_final_'+species+'_upar_RZ.h5',
-    gke_data_dir+'ltx_gkeyll_li863mg_final_'+species+'_tpar_RZ.h5',
-    gke_data_dir+'ltx_gkeyll_li863mg_final_'+species+'_tperp_RZ.h5',
+    xgc_data_dir+'ltx_xgc_li863mg_final_'+species+'_den_RZ.h5',
+    xgc_data_dir+'ltx_xgc_li863mg_final_'+species+'_upar_RZ.h5',
+    xgc_data_dir+'ltx_xgc_li863mg_final_'+species+'_tpar_RZ.h5',
+    xgc_data_dir+'ltx_xgc_li863mg_final_'+species+'_tperp_RZ.h5',
   ]
 
   wall_file = '../experiment/LTXvessel.csv'
@@ -427,10 +443,14 @@ if plot_moms_RZ_final_li863mg:
   hpld.append(ax_h[3].pcolormesh(spl03_x, spl03_y, spl03_z, cmap='inferno', vmin=zmin[3], vmax=zmax[3]))
 
   hple, hplf, hplg, hplh = list(), list(), list(), list(),
-  hple.append(ax_h[4+0].pcolormesh(spl10_x, spl10_y, spl10_z, cmap='inferno', vmin=zmin[0], vmax=zmax[0]))
-  hplf.append(ax_h[4+1].pcolormesh(spl11_x, spl11_y, spl11_z, cmap='inferno', vmin=zmin[1], vmax=zmax[1]))
-  hplg.append(ax_h[4+2].pcolormesh(spl12_x, spl12_y, spl12_z, cmap='inferno', vmin=zmin[2], vmax=zmax[2]))
-  hplh.append(ax_h[4+3].pcolormesh(spl13_x, spl13_y, spl13_z, cmap='inferno', vmin=zmin[3], vmax=zmax[3]))
+#  hple.append(ax_h[4+0].pcolormesh(spl10_x, spl10_y, spl10_z, cmap='inferno', vmin=zmin[0], vmax=zmax[0]))
+#  hplf.append(ax_h[4+1].pcolormesh(spl11_x, spl11_y, spl11_z, cmap='inferno', vmin=zmin[1], vmax=zmax[1]))
+#  hplg.append(ax_h[4+2].pcolormesh(spl12_x, spl12_y, spl12_z, cmap='inferno', vmin=zmin[2], vmax=zmax[2]))
+#  hplh.append(ax_h[4+3].pcolormesh(spl13_x, spl13_y, spl13_z, cmap='inferno', vmin=zmin[3], vmax=zmax[3]))
+  hple.append(ax_h[4+0].tripcolor(triang, spl10_z, cmap='inferno', vmin=zmin[0], vmax=zmax[0]))
+  hplf.append(ax_h[4+1].tripcolor(triang, spl11_z, cmap='inferno', vmin=zmin[1], vmax=zmax[1]))
+  hplg.append(ax_h[4+2].tripcolor(triang, spl12_z, cmap='inferno', vmin=zmin[2], vmax=zmax[2]))
+  hplh.append(ax_h[4+3].tripcolor(triang, spl13_z, cmap='inferno', vmin=zmin[3], vmax=zmax[3]))
 
   #[ Plot wall
   wall_data = np.loadtxt(open(wall_file),delimiter=',')

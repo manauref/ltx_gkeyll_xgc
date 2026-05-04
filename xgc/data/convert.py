@@ -32,6 +32,10 @@ with ad.Stream(f2dfile,"rra") as f:
 #    ne = np.average(f.read("e_den"),axis=0)
 #    ne = f.read("e_den_en")[:,0]
     ne = f.read("e_den")[:]
+    ni = f.read("i_den")[:]
+    ui = f.read("i_u_para")[:]
+    ue = f.read("e_u_para")[:]
+
 #    Teperp = np.average(f.read("e_T_perp"),axis=0)
 #    Tepara = np.average(f.read("e_T_para"),axis=0)
 #    Tiperp = np.average(f.read("i_T_perp"),axis=0)
@@ -48,12 +52,13 @@ with ad.Stream(f2dfile_init,"rra") as f:
 #    ne_0 = np.average(f.read("e_den"),axis=0)
 #    ne_0 = f.read("e_den_en")[:,0]
     ne_0 = f.read("e_den")[:]
-    Teperp = f.read("e_T_perp")
-    Tepara = f.read("e_T_para")
-    Tiperp = f.read("i_T_perp")
-    Tipara = f.read("i_T_para")
-    Te_0 = (2.0*Teperp + Tepara)/3.0
-    Ti_0 = (2.0*Tiperp + Tipara)/3.0
+    ui_0 = f.read("i_u_para")[:]
+    Teperp_0 = f.read("e_T_perp")
+    Tepara_0 = f.read("e_T_para")
+    Tiperp_0 = f.read("i_T_perp")
+    Tipara_0 = f.read("i_T_para")
+    Te_0 = (2.0*Teperp_0 + Tepara_0)/3.0
+    Ti_0 = (2.0*Tiperp_0 + Tipara_0)/3.0
 
 nsurf = len(psi_surf)-1
 ne_omp = np.zeros(nsurf)
@@ -94,11 +99,16 @@ def write_grid(filename,rz,conn):
     f.create_dataset("subplot00_line_connections",data=conn)
     f.close()
 
-#def write_moms(filename,ne,upar,Te,Ti):
+def write_moms(filename,x,y,z):
+    f = h5py.File(filename,"w")
+    f.create_dataset("subplot00_xvalues",data=x)
+    f.create_dataset("subplot00_yvalues",data=y)
+    f.create_dataset("subplot00_zvalues",data=z)
+    f.close()
 
 
-def write_hdf5(filename,psi,ne,Te,Ti):
 
+def write_omp(filename,psi,ne,Te,Ti):
     f = h5py.File(filename,"w")
     f.create_dataset("subplot00_line0_xvalues",data=psi)
     f.create_dataset("subplot00_line0_yvalues",data=ne)
@@ -108,10 +118,22 @@ def write_hdf5(filename,psi,ne,Te,Ti):
     f.create_dataset("subplot02_line0_yvalues",data=Ti)
     f.close()
 
-write_hdf5(h5filename_final,psiN,ne_omp,Te_omp,Ti_omp)
-write_hdf5(h5filename_init,psiN,ne_omp_0,Te_omp_0,Ti_omp_0)
+write_omp(h5filename_final,psiN,ne_omp,Te_omp,Ti_omp)
+write_omp(h5filename_init,psiN,ne_omp_0,Te_omp_0,Ti_omp_0)
 
 rz = ad.Stream(datadir+"xgc.mesh.bp","rra").read("rz")
 conn = ad.Stream(datadir+"xgc.mesh.bp","rra").read("nd_connect_list")
 write_grid("ltx_xgc_li863mg_grid_RZ.h5",rz,conn)
+
+write_moms("ltx_xgc_li863mg_final_elc_den_RZ.h5",rz[:,0],rz[:,1],ne)
+write_moms("ltx_xgc_li863mg_final_elc_upar_RZ.h5",rz[:,0],rz[:,1],ue)
+write_moms("ltx_xgc_li863mg_final_elc_tpar_RZ.h5",rz[:,0],rz[:,1],Tepara)
+write_moms("ltx_xgc_li863mg_final_elc_tperp_RZ.h5",rz[:,0],rz[:,1],Teperp)
+
+write_moms("ltx_xgc_li863mg_final_ion_den_RZ.h5",rz[:,0],rz[:,1],ni)
+write_moms("ltx_xgc_li863mg_final_ion_upar_RZ.h5",rz[:,0],rz[:,1],ui)
+write_moms("ltx_xgc_li863mg_final_ion_tpar_RZ.h5",rz[:,0],rz[:,1],Tipara)
+write_moms("ltx_xgc_li863mg_final_ion_tperp_RZ.h5",rz[:,0],rz[:,1],Tiperp)
+                    
+
 
