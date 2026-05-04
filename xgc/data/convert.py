@@ -5,8 +5,6 @@ import matplotlib.pyplot as plt
 import matplotlib.tri as mtri
 from matplotlib.colors import LogNorm
 
-h5filename_final = "ltx103955-04_v0_xgc_final_moments_omp.h5"
-h5filename_init = "ltx103955-04_v0_xgc_init_moments_omp.h5"
 #datadir = "/home/george/proj/ltx/turb/lowres-d2/"
 datadir = "/home/george/proj/ltx/"
 step = 9000
@@ -33,7 +31,7 @@ with ad.Stream(f2dfile,"rra") as f:
 #    ne = f.read("e_den_en")[:,0]
     ne = f.read("e_den")[:]
     ni = f.read("i_den")[:]
-    ui = f.read("i_u_para")[:]
+    ui = f.read("i_u_para")[:]*1.0e-3
     ue = f.read("e_u_para")[:]
 
 #    Teperp = np.average(f.read("e_T_perp"),axis=0)
@@ -52,7 +50,7 @@ with ad.Stream(f2dfile_init,"rra") as f:
 #    ne_0 = np.average(f.read("e_den"),axis=0)
 #    ne_0 = f.read("e_den_en")[:,0]
     ne_0 = f.read("e_den")[:]
-    ui_0 = f.read("i_u_para")[:]
+    ui_0 = f.read("i_u_para")[:]*1.0e-3
     Teperp_0 = f.read("e_T_perp")
     Tepara_0 = f.read("e_T_para")
     Tiperp_0 = f.read("i_T_perp")
@@ -118,6 +116,8 @@ def write_omp(filename,psi,ne,Te,Ti):
     f.create_dataset("subplot02_line0_yvalues",data=Ti)
     f.close()
 
+h5filename_final = "ltx103955-04_v0_xgc_final_moments_omp.h5"
+h5filename_init = "ltx103955-04_v0_xgc_init_moments_omp.h5"
 write_omp(h5filename_final,psiN,ne_omp,Te_omp,Ti_omp)
 write_omp(h5filename_init,psiN,ne_omp_0,Te_omp_0,Ti_omp_0)
 
