@@ -7,11 +7,12 @@ from matplotlib.colors import LogNorm
 
 h5filename_final = "ltx103955-04_v0_xgc_final_moments_omp.h5"
 h5filename_init = "ltx103955-04_v0_xgc_init_moments_omp.h5"
-datadir = "/home/george/proj/ltx/turb/lowres-d2/"
-step = 4000
+#datadir = "/home/george/proj/ltx/turb/lowres-d2/"
+datadir = "/home/george/proj/ltx/"
+step = 9000
 step_0 = 100
 
-f3dfile = datadir+"xgc.f3d.%05d.bp"%(step)
+f2dfile = datadir+"xgc.f2d.%05d.bp"%(step)
 
 with ad.Stream(datadir+"xgc.mesh.bp","rra") as f:
     rz = f.read("rz")
@@ -27,24 +28,30 @@ with ad.Stream(datadir+"xgc.equil.bp","rra") as f:
     axis_r = f.read("eq_axis_r")
     axis_z = f.read("eq_axis_z")
 
-with ad.Stream(f3dfile,"rra") as f:
-    ne = np.average(f.read("e_den"),axis=0)
+with ad.Stream(f2dfile,"rra") as f:
+#    ne = np.average(f.read("e_den"),axis=0)
 #    ne = f.read("e_den_en")[:,0]
-    Teperp = np.average(f.read("e_T_perp"),axis=0)
-    Tepara = np.average(f.read("e_T_para"),axis=0)
-    Tiperp = np.average(f.read("i_T_perp"),axis=0)
-    Tipara = np.average(f.read("i_T_para"),axis=0)
+    ne = f.read("e_den")[:]
+#    Teperp = np.average(f.read("e_T_perp"),axis=0)
+#    Tepara = np.average(f.read("e_T_para"),axis=0)
+#    Tiperp = np.average(f.read("i_T_perp"),axis=0)
+#    Tipara = np.average(f.read("i_T_para"),axis=0)
+    Teperp = f.read("e_T_perp")
+    Tepara = f.read("e_T_para")
+    Tiperp = f.read("i_T_perp")
+    Tipara = f.read("i_T_para")
     Te = (2.0*Teperp + Tepara)/3.0
     Ti = (2.0*Tiperp + Tipara)/3.0
 
-f3dfile_init = datadir+"xgc.f3d.%05d.bp"%(step_0)
-with ad.Stream(f3dfile_init,"rra") as f:
-    ne_0 = np.average(f.read("e_den"),axis=0)
+f2dfile_init = datadir+"xgc.f2d.%05d.bp"%(step_0)
+with ad.Stream(f2dfile_init,"rra") as f:
+#    ne_0 = np.average(f.read("e_den"),axis=0)
 #    ne_0 = f.read("e_den_en")[:,0]
-    Teperp = np.average(f.read("e_T_perp"),axis=0)
-    Tepara = np.average(f.read("e_T_para"),axis=0)
-    Tiperp = np.average(f.read("i_T_perp"),axis=0)
-    Tipara = np.average(f.read("i_T_para"),axis=0)
+    ne_0 = f.read("e_den")[:]
+    Teperp = f.read("e_T_perp")
+    Tepara = f.read("e_T_para")
+    Tiperp = f.read("i_T_perp")
+    Tipara = f.read("i_T_para")
     Te_0 = (2.0*Teperp + Tepara)/3.0
     Ti_0 = (2.0*Tiperp + Tipara)/3.0
 
@@ -80,6 +87,16 @@ plt.plot(psiN,Ti_omp)
 plt.plot(psiN,Ti_omp_0)
 plt.savefig("moments.png")
 
+def write_grid(filename,rz,conn):
+    f = h5py.File(filename,"w")
+    f.create_dataset("subplot00_nodes_xvalues",data=rz[:,0])
+    f.create_dataset("subplot00_nodes_yvalues",data=rz[:,1])
+    f.create_dataset("subplot00_line_connections",data=conn)
+    f.close()
+
+#def write_moms(filename,ne,upar,Te,Ti):
+
+
 def write_hdf5(filename,psi,ne,Te,Ti):
 
     f = h5py.File(filename,"w")
@@ -93,3 +110,8 @@ def write_hdf5(filename,psi,ne,Te,Ti):
 
 write_hdf5(h5filename_final,psiN,ne_omp,Te_omp,Ti_omp)
 write_hdf5(h5filename_init,psiN,ne_omp_0,Te_omp_0,Ti_omp_0)
+
+rz = ad.Stream(datadir+"xgc.mesh.bp","rra").read("rz")
+conn = ad.Stream(datadir+"xgc.mesh.bp","rra").read("nd_connect_list")
+write_grid("ltx_xgc_li863mg_grid_RZ.h5",rz,conn)
+

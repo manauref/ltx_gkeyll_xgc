@@ -18,12 +18,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import h5py
 from matplotlib.collections import LineCollection #[ For plotting edges.
+import matplotlib.tri as mtri
 import sys #[ For error exit.
 #[ Append path to utilities folder.
 sys.path.insert(0, '../util/')
 import ltx_common_util as lcu
 
-plot_grids_RZ_li863mg           = False  #[ Grids on the R-Z plane of 863 mg simulation.
+plot_grids_RZ_li863mg           = True  #[ Grids on the R-Z plane of 863 mg simulation.
 plot_den_omp_init_li863mg       = False  #[ Initial n at outboard midplane (OMP) of 863 mg simulation.
 plot_den_temp_omp_init_li863mg  = False  #[ Initial n and T profiles at OMP.
 plot_den_temp_omp_final_li863mg = False  #[ Final n and T profiles at OMP.
@@ -41,7 +42,7 @@ figure_file_format = '.png'    #[ Can be .png, .pdf, .ps, .eps, .svg.
 save_data          = False    #[ Indicate whether to save data in plot to HDF5 file.
 
 #[ Vacuum vessel wall coordinates.
-ltx_vv_file = '/Users/mfrancis/Documents/gkeyll/code/gkyl-sims/ltx/sim_data/ltx_gkeyll_xgc/experiment/LTXvessel.csv'  
+ltx_vv_file = '../experiment/LTXvessel.csv'  
 
 #[ ............... End of user inputs (MAYBE) ..................... ]#
 
@@ -80,12 +81,15 @@ if plot_grids_RZ_li863mg:
   xgc_data = h5py.File(xgc_data_file, "r")
   xgc_spl00_nodes_x      = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_nodes_xvalues')
   xgc_spl00_nodes_y      = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_nodes_yvalues')
-  xgc_spl00_edges_constx = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_edges_constx')
-  xgc_spl00_edges_consty = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_edges_consty')
-  xgc_spl00_psi_x        = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_psi_xvalues')
-  xgc_spl00_psi_y        = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_psi_yvalues')
-  xgc_spl00_psi_z        = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_psi_zvalues')
+  xgc_spl00_conn         = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_line_connections')
+#  xgc_spl00_edges_constx = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_edges_constx')
+#  xgc_spl00_edges_consty = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_edges_consty')
+#  xgc_spl00_psi_x        = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_psi_xvalues')
+#  xgc_spl00_psi_y        = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_psi_yvalues')
+#  xgc_spl00_psi_z        = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_psi_zvalues')
   xgc_data.close()
+
+  triang = mtri.Triangulation(xgc_spl00_nodes_x,xgc_spl00_nodes_y,xgc_spl00_conn)
 
   #[ Load wall coordinates.
   wall_data = np.loadtxt(open(ltx_vv_file),delimiter=',')
@@ -108,10 +112,12 @@ if plot_grids_RZ_li863mg:
 
   #[ Plot XGC nodes, edges and psi.
   hplb = list()
-  hplb.append(ax_h[1].plot(xgc_spl00_nodes_x,xgc_spl00_nodes_y,marker=".", color=nodes_color, linestyle="none"))
-  hplb.append(ax_h[1].add_collection(LineCollection(xgc_spl00_edges_constx, color=edges_color)))
-  hplb.append(ax_h[1].add_collection(LineCollection(xgc_spl00_edges_consty, color=edges_color)))
-  hplb.append(ax_h[1].contour(xgc_spl00_psi_x, xgc_spl00_psi_y, xgc_spl00_psi_z))
+#  hplb.append(ax_h[1].plot(xgc_spl00_nodes_x,xgc_spl00_nodes_y,marker=".", color=nodes_color, linestyle="none"))
+  hplb.append(ax_h[1].triplot(triang, color=edges_color,linewidth=0.2))
+#  hplb.append(ax_h[1].add_collection(LineCollection(xgc_spl00_edges_consty, color=edges_color)))
+#  hplb.append(ax_h[1].add_collection(LineCollection(xgc_spl00_edges_constx, color=edges_color)))
+#  hplb.append(ax_h[1].add_collection(LineCollection(xgc_spl00_edges_consty, color=edges_color)))
+#  hplb.append(ax_h[1].contour(xgc_spl00_psi_x, xgc_spl00_psi_y, xgc_spl00_psi_z))
   plt.text(0.06, 0.93, r'(b) XGC', fontsize=16, color='black', transform=ax_h[1].transAxes)
 
   ax_h[0].set_ylabel(r'Z (m)', fontsize=lcu.xy_label_font_size)
@@ -121,7 +127,6 @@ if plot_grids_RZ_li863mg:
     ax_h[i].set_xlabel(r'R (m)', fontsize=lcu.xy_label_font_size, labelpad=-2)
     lcu.set_tick_font_size(ax_h[i],lcu.tick_font_size)
     wall_h.append(ax_h[i].plot(wall_x,wall_y,color=wall_color))
-  # end
 
   if output_figure_file:
     fig_file_name = output_prefix+fig_name
@@ -358,7 +363,7 @@ if plot_moms_RZ_final_li863mg:
     gke_data_dir+'ltx_gkeyll_li863mg_final_'+species+'_tperp_RZ.h5',
   ]
 
-  wall_file = '/global/homes/m/mana/perlmutter/gkeyll/code/gkyl-sims/ltx_gkeyll_xgc/experiment/LTXvessel.csv'
+  wall_file = '../experiment/LTXvessel.csv'
 
   xlabel = r'$R$ (m)'
   ylabel = r'$Z$ (m)'
