@@ -364,6 +364,15 @@ void temp_init_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTR
   fout[0] = 0.8*Te0*(1.1 - tanh((9.0/Lx)*(psi_max-0.646767778*Lx-x)));
 }
 
+static double
+sign(double a)
+{
+  if (a != 0.0)
+    return a/fabs(a);
+  else
+    return -1.0;
+}
+
 void density_init_neut(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0], z = xn[1];
@@ -373,16 +382,34 @@ void density_init_neut(double t, const double* GKYL_RESTRICT xn, double* GKYL_RE
   double Lx = app->Lx;
   double Lz = app->Lz;
   double x_LCFS = app->psi_LCFS;
+  double floor = pow(10,16.);
+  double psi_min = app->psi_min;
 
-  double n_x = 0.5*(1+tanh(-(x-0.9*x_LCFS)/(0.4*Lx)));
+//  double n_x = 0.5*(1+tanh(-(x-0.9*x_LCFS)/(0.1*Lx)));
+//  double n_x = (1.6/1.855)*0.5*(1+tanh((x-0.9*x_LCFS)/(0.1*Lx)))+0.08;
+  double n_x;
+  if (x <= x_LCFS)
+    n_x = exp(-pow(x-x_LCFS,2)/(2*pow(0.25*Lx,2)));
+  else
+    n_x = exp(-pow(x-x_LCFS,2)/(2*pow(0.1*Lx,2)));
+
+//  n_x *= 0.5*(1+tanh(-(x-psi_min)/(.50*Lx)));
 
   double n_z = 0.0;
-  if (z <= 0.0)
-    n_z = (pow(1.0/cosh(z+Lz/2.),2.0) + 1.e-6);
-  else
-    n_z = (pow(1.0/cosh(z-Lz/2.),2.0) + 1.e-6);
+//  if (z <= 0.0)
+//    n_z = (pow(1.0/cosh((z+Lz/2.)/(.250)),2.0) + 1.e-6);
+//  else
+//    n_z = (pow(1.0/cosh((z-Lz/2.)/(.250)),2.0) + 1.e-6);
+    
+//  if (x <= x_LCFS)
+//    n_z = (pow(1.0/cosh((z-sign(z)*Lz/2.)/(.750)),2.0) + 1.e-6);
+//  else
+//    n_z = (pow(1.0/cosh((z-sign(z)*Lz/2.)/(.250)),2.0) + 1.e-6);
 
-  fout[0] = 10.0*n0_neut*n_x*n_z;
+  n_z = (pow(1.0/cosh((z-sign(z)*Lz/2.)/(.05*Lz)),2.0) + 1.e-6);
+
+  fout[0] = fmax(10.0*n0_neut*n_x*n_z, floor);
+//  fout[0] = 10.0*n0_neut*n_x*n_z;
 }
 
 void temp_init_neut(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)

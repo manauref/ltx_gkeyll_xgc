@@ -24,11 +24,11 @@ import sys #[ For error exit.
 sys.path.insert(0, '../util/')
 import ltx_common_util as lcu
 
-plot_grids_RZ_li863mg           = True  #[ Grids on the R-Z plane of 863 mg simulation.
-plot_den_omp_init_li863mg       = True  #[ Initial n at outboard midplane (OMP) of 863 mg simulation.
-plot_den_temp_omp_init_li863mg  = True  #[ Initial n and T profiles at OMP.
+plot_grids_RZ_li863mg           = False  #[ Grids on the R-Z plane of 863 mg simulation.
+plot_den_omp_init_li863mg       = False  #[ Initial n at outboard midplane (OMP) of 863 mg simulation.
+plot_den_temp_omp_init_li863mg  = False  #[ Initial n and T profiles at OMP.
 plot_den_temp_omp_final_li863mg = True  #[ Final n and T profiles at OMP.
-plot_moms_RZ_final_li863mg      = True  #[ Final n, upar, Tpar and Tperp profiles on R-Z plane.
+plot_moms_RZ_final_li863mg      = False  #[ Final n, upar, Tpar and Tperp profiles on R-Z plane.
 
 gke_data_dir = '../gkeyll/data/' #[ Location of reduced Gkeyll data.
 xgc_data_dir = '../xgc/data/' #[ Location of reduced XGC data.
@@ -37,9 +37,9 @@ out_data_dir  = './data/'
 out_fig_dir   = './figures/'
 output_prefix = 'ltx_sims_'
 
-output_figure_file = False     #[ Output a figure file?.
+output_figure_file = True     #[ Output a figure file?.
 figure_file_format = '.png'    #[ Can be .png, .pdf, .ps, .eps, .svg.
-save_data          = False    #[ Indicate whether to save data in plot to HDF5 file.
+save_data          = True    #[ Indicate whether to save data in plot to HDF5 file.
 
 #[ Vacuum vessel wall coordinates.
 ltx_vv_file = '../experiment/LTXvessel.csv'  
@@ -331,9 +331,9 @@ if plot_den_temp_omp_final_li863mg:
   #[ Plot final density and temperature at the OMP.
   fig_name = lcu.li863_prefix+'final_den_temp_omp'
   y_labels = [
-    r'$n_e(\theta=0,t=4~\mathrm{ms})$ (m$^{-3}$)',
-    r'$T_e(\theta=0,t=4~\mathrm{ms})$ (eV)',
-    r'$T_i(\theta=0,t=4~\mathrm{ms})$ (eV)',
+    r'$n_e(\theta=0)$ (m$^{-3}$)',
+    r'$T_e(\theta=0)$ (eV)',
+    r'$T_i(\theta=0)$ (eV)',
   ]
 
   gke_data_file = gke_data_dir+'ltx_gkeyll_li863mg_final_den_temp_z1mid.h5'
