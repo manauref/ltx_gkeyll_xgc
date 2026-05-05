@@ -1083,7 +1083,15 @@ if plot_nu_vs_x:
   ax_h[0].set_xlim(x_coord[0], x_coord[-1])
 
   if out_figure_file:
-    fig_file_name = output_prefix+fig_file_name_root+nu_file_str
+    fig_file_suffix = 'z1slice'
+    if abs((plotz-z_coord[0])/z_coord[0]) < 1e-5:
+      fig_file_suffix = 'z1min'
+    elif abs(plotz-0.5*(z_coord[0]+z_coord[-1])) < 1e-5:
+      fig_file_suffix = 'z1mid'
+    elif abs((plotz-z_coord[-1])/z_coord[-1]) < 1e-5:
+      fig_file_suffix = 'z1max'
+
+    fig_file_name = output_prefix+fig_file_name_root+nu_file_str+'_'+fig_file_suffix
 
     if save_data:
       h5f = h5py.File(out_data_dir+fig_file_name+'.h5', "w")
