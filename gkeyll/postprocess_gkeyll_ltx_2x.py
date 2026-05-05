@@ -1091,7 +1091,7 @@ if plot_nu_vs_x:
       h5f.create_dataset('subplot00_nodes_yvalues', np.shape(spl00_line0_y), dtype='f8', data=spl00_line0_y)
       h5f.close()
 
-    fig_h.savefig(out_fig_dir+fig_file_name+nu_file_str+figure_file_format)
+    fig_h.savefig(out_fig_dir+fig_file_name+figure_file_format)
     plt.close()
 
   else:
