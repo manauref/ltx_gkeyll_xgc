@@ -26,9 +26,10 @@ plot_nT_vs_x          = False  #[ Sensity and temperature profiles vs. x.
 plot_src_mom_vs_x     = False  #[ Source moments vs. x.
 plot_src_int_mom_vs_t = False  #[ Source integrated moments vs. t.
 plot_vs_RZ            = False  #[ A quantity at the R-Z midplane.
-plot_nT_vs_x_multisim = True  #[ Density and temperature profiles vs. x for multiple sims.
+plot_nT_vs_x_multisim = False  #[ Density and temperature profiles vs. x for multiple sims.
 plot_nu_RZ            = False  #[ Collision frequency on RZ plane.
 plot_nu_vs_x          = False  #[ Collision frequency vs. x.
+plot_int_mom_vs_t     = True   #[ Integrated moments vs. t.
 
 out_data_dir  = './data/'
 out_fig_dir   = './figures/'
@@ -1105,4 +1106,117 @@ if plot_nu_vs_x:
   else:
     plt.show()
 
+
+#................................................................................#
+
+if plot_int_mom_vs_t:
+  #[ Plot integrated moments vs. t:
+
+#  data_dir = '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-base/'
+#  fig_file_name_root = lcu.li863_prefix+'int_moms'
+  data_dir = '/pscratch/sd/m/mana/gkeyll/ltx/2d/lipass_103795_03-base/'
+  fig_file_name_root = lcu.lipass_prefix+'int_moms'
+
+  xlabel = r'Time (ms)'
+  y_labels = [
+    r'$\left\langle n_s\right\rangle$',
+    r'$\left\langle n_s u_{\parallel s}\right\rangle$',
+    r'$\left\langle n_s\left(u_{\parallel s}^2+3v_{ts}^2\right)\right\rangle$',
+  ]
+
+  file_path = [
+    data_dir+sim_name+'-elc_integrated_moms'+file_fmt,
+    data_dir+sim_name+'-ion_integrated_moms'+file_fmt,
+  ]
+
+  #[ Load the data.
+  time, int_mom_elc = pgu.readDynVector(file_path[0])
+  time, int_mom_ion = pgu.readDynVector(file_path[1])
+
+  m0_elc = int_mom_elc[:,0]
+  m1_elc = int_mom_elc[:,1]
+  m2_elc = int_mom_elc[:,2]+int_mom_elc[:,3]
+  m0_ion = int_mom_ion[:,0]
+  m1_ion = int_mom_ion[:,1]
+  m2_ion = int_mom_ion[:,2]+int_mom_ion[:,3]
+
+  #[ Conver time to ms.
+  time *= 1e3
+
+  #[ Normalize to the final value.
+  m0_elc *= 1.0/np.abs(m0_elc[-1])
+  m1_elc *= 1.0/np.abs(m1_elc[-1])
+  m2_elc *= 1.0/np.abs(m2_elc[-1])
+  m0_ion *= 1.0/np.abs(m0_ion[-1])
+  m1_ion *= 1.0/np.abs(m1_ion[-1])
+  m2_ion *= 1.0/np.abs(m2_ion[-1])
+
+  #[ Prepare figure.
+  fig_prop = (6., 6.5)
+  ax_pos   = [[0.15, 0.69, 0.83, 0.27],
+              [0.15, 0.40, 0.83, 0.27],
+              [0.15, 0.11, 0.83, 0.27],]
+  fig_h    = plt.figure(figsize=fig_prop)
+  ax_h     = [fig_h.add_axes(pos) for pos in ax_pos]
+
+  #[ Plot data
+  spl00_line0_x = time
+  spl10_line0_x = time
+  spl20_line0_x = time
+  spl00_line0_y = m0_elc
+  spl10_line0_y = m1_elc
+  spl20_line0_y = m2_elc
+
+  spl00_line1_x = time
+  spl10_line1_x = time
+  spl20_line1_x = time
+  spl00_line1_y = m0_ion
+  spl10_line1_y = m1_ion
+  spl20_line1_y = m2_ion
+
+  hpla, hplb, hplc = list(), list(), list()
+  hpla.append(ax_h[0].plot(spl00_line0_x, spl00_line0_y, color=lcu.default_colors[0], linestyle=lcu.default_line_styles[0], marker=lcu.default_markers[0]))
+  hpla.append(ax_h[0].plot(spl00_line1_x, spl00_line1_y, color=lcu.default_colors[1], linestyle=lcu.default_line_styles[1], marker=lcu.default_markers[1]))
+  hpla.append(ax_h[1].plot(spl10_line0_x, spl10_line0_y, color=lcu.default_colors[0], linestyle=lcu.default_line_styles[0], marker=lcu.default_markers[0]))
+  hpla.append(ax_h[1].plot(spl10_line1_x, spl10_line1_y, color=lcu.default_colors[1], linestyle=lcu.default_line_styles[1], marker=lcu.default_markers[1]))
+  hpla.append(ax_h[2].plot(spl20_line0_x, spl20_line0_y, color=lcu.default_colors[0], linestyle=lcu.default_line_styles[0], marker=lcu.default_markers[0]))
+  hpla.append(ax_h[2].plot(spl20_line1_x, spl20_line1_y, color=lcu.default_colors[1], linestyle=lcu.default_line_styles[1], marker=lcu.default_markers[1]))
+
+  for i in range(len(ax_h)):
+    ax_h[i].set_ylabel(y_labels[i], fontsize=lcu.xy_label_font_size)
+    ax_h[i].yaxis.get_offset_text().set_size(lcu.tick_font_size)
+    lcu.set_tick_font_size(ax_h[i],lcu.tick_font_size)
+    ax_h[i].set_xlim(time[0], 1.0)
+#    ax_h[i].set_xlim(time[0], time[-1])
+  # end
+
+  ax_h[0].legend([hpla[0][0],hpla[1][0]],['e$^-$','H$^+$'],fontsize=lcu.legend_font_size, frameon=False, loc='upper right')
+  ax_h[-1].set_xlabel(xlabel, fontsize=lcu.xy_label_font_size, labelpad=0)
+  for i in range(2):
+    plt.setp( ax_h[i].get_xticklabels(), visible=False)
+
+  if out_figure_file:
+    fig_file_name = output_prefix+fig_file_name_root
+
+    if save_data:
+      h5f = h5py.File(out_data_dir+fig_file_name+'.h5', "w")
+      h5f.create_dataset('subplot00_line0_xvalues', np.shape(spl00_line0_x), dtype='f8', data=spl00_line0_x)
+      h5f.create_dataset('subplot00_line0_yvalues', np.shape(spl00_line0_y), dtype='f8', data=spl00_line0_y)
+      h5f.create_dataset('subplot00_line1_xvalues', np.shape(spl00_line1_x), dtype='f8', data=spl00_line1_x)
+      h5f.create_dataset('subplot00_line1_yvalues', np.shape(spl00_line1_y), dtype='f8', data=spl00_line1_y)
+      h5f.create_dataset('subplot10_line0_xvalues', np.shape(spl10_line0_x), dtype='f8', data=spl10_line0_x)
+      h5f.create_dataset('subplot10_line0_yvalues', np.shape(spl10_line0_y), dtype='f8', data=spl10_line0_y)
+      h5f.create_dataset('subplot10_line1_xvalues', np.shape(spl10_line1_x), dtype='f8', data=spl10_line1_x)
+      h5f.create_dataset('subplot10_line1_yvalues', np.shape(spl10_line1_y), dtype='f8', data=spl10_line1_y)
+      h5f.create_dataset('subplot20_line0_xvalues', np.shape(spl20_line0_x), dtype='f8', data=spl20_line0_x)
+      h5f.create_dataset('subplot20_line0_yvalues', np.shape(spl20_line0_y), dtype='f8', data=spl20_line0_y)
+      h5f.create_dataset('subplot20_line1_xvalues', np.shape(spl20_line1_x), dtype='f8', data=spl20_line1_x)
+      h5f.create_dataset('subplot20_line1_yvalues', np.shape(spl20_line1_y), dtype='f8', data=spl20_line1_y)
+      h5f.close()
+
+    fig_h.savefig(out_fig_dir+fig_file_name+figure_file_format)
+    plt.close()
+
+  else:
+    plt.show()
 #................................................................................#
