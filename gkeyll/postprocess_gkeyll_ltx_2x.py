@@ -34,8 +34,8 @@ out_data_dir  = './data/'
 out_fig_dir   = './figures/'
 output_prefix = 'ltx_gkeyll_'
 
-save_data          = False    #[ Indicate whether to save data in plot to HDF5 file.
-out_figure_file    = False     #[ Output a figure file?.
+save_data          = True    #[ Indicate whether to save data in plot to HDF5 file.
+out_figure_file    = True     #[ Output a figure file?.
 figure_file_format = '.png'    #[ Can be .png, .pdf, .ps, .eps, .svg.
 
 sim_name   = 'gk_ltx_iwl_2x2v_p1'      #[ Root name of files to process.
@@ -966,7 +966,7 @@ def calc_normNu(ns, nr, ms, mr, qs, qr, Ts, Tr, bmag_mid, eps0, hbar, eV):
 if plot_nu_vs_x:
   #[ Plot the collision frequency vs. x.
 
-  plot_nuStar = True
+  plot_nuStar = False
 #  data_dir = '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-base/'
 #  fig_file_name_root = lcu.li863_prefix+'final_'
   data_dir = '/pscratch/sd/m/mana/gkeyll/ltx/2d/lipass_103795_03-base/'

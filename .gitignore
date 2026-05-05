@@ -1,4 +1,5 @@
 *.gkyl
 *.json
+*.swp
 Makefile
 __pycache__
