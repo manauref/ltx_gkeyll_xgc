@@ -20,13 +20,15 @@ sys.path.insert(0, '../util/')
 import ltx_common_util as lcu
 
 #[ Plotting options.
-plot_grid_RZ          = False  #[ Plot grid on RZ plane.
-plot_vs_x             = False  #[ Plot a quantity at the outboard midplane.
-plot_nT_vs_x          = False  #[ Plot density and temperature profiles vs. x.
-plot_src_mom_vs_x     = False  #[ Plot source moments vs. x.
-plot_src_int_mom_vs_t = False  #[ Plot source integrated moments vs. t.
-plot_vs_RZ            = False  #[ Plot a quantity at the R-Z midplane.
-plot_nT_vs_x_multisim = True  #[ Plot density and temperature profiles vs. x for multiple sims.
+plot_grid_RZ          = False  #[ Grid on RZ plane.
+plot_vs_x             = False  #[ A quantity at the outboard midplane.
+plot_nT_vs_x          = False  #[ Sensity and temperature profiles vs. x.
+plot_src_mom_vs_x     = False  #[ Source moments vs. x.
+plot_src_int_mom_vs_t = False  #[ Source integrated moments vs. t.
+plot_vs_RZ            = False  #[ A quantity at the R-Z midplane.
+plot_nT_vs_x_multisim = False  #[ Density and temperature profiles vs. x for multiple sims.
+plot_nu_RZ            = False  #[ Collision frequency on RZ plane.
+plot_nu_vs_x          = True  #[ Collision frequency vs. x.
 
 out_data_dir  = './data/'
 out_fig_dir   = './figures/'
@@ -41,14 +43,17 @@ sim_name   = 'gk_ltx_iwl_2x2v_p1'      #[ Root name of files to process.
 #[ ............... End of user inputs (MAYBE) ..................... ]#
 
 def get_equilibrium_meta(data_dir):
-  #[ Return the axis and LCFS psi for a given shot based on the name.
+  #[ Return equilibrium metadata for a given shot based on the name.
   out_d = {}
   if '103955_04' in data_dir:
-    out_d["R_axis"]    = 0.40045564 #[ R coord of the magnetic axis.
-    out_d["Z_axis"]    = 0 #[ Z coord of the magnetic axis.
-    out_d["psi_axis"]  = 1.188460310e-03 #[ psi at the magnetic axis.
-    out_d["psi_lcfs"]  = -5.632462250e-03 #[ LCFS psi coordinate for 863 mg shot (LTX_103955_03.eqdsk).
-    out_d["psi_conv"]  = out_d["psi_axis"] < out_d["psi_lcfs"] #[ =True psi increases outwards, =False it increases inwards.
+    out_d["R_axis"]      = 0.40045564 #[ R coord of the magnetic axis.
+    out_d["Z_axis"]      = 0 #[ Z coord of the magnetic axis.
+    out_d["psi_axis"]    = 1.188460310e-03 #[ psi at the magnetic axis.
+    out_d["psi_lcfs"]    = -5.632462250e-03 #[ LCFS psi coordinate for 863 mg shot (LTX_103955_03.eqdsk).
+    out_d["psi_conv"]    = out_d["psi_axis"] < out_d["psi_lcfs"] #[ =True psi increases outwards, =False it increases inwards.
+    out_d["R_LCFS_OMP"]  = 0.605493501 #[ Major radius of the LCFS at OMP.
+    out_d["Lc_LCFS_OMP"] = 6.0 #[ Connection length close to the LCFS at the OMP.
+    out_d["B0"]          = 0.5*(1.666901e-01+6.814593e-01) #[ Reference magnetic field amplitude.
   elif '103955_03' in data_dir:
     out_d["R_axis"]    = 0.406052 #[ R coord of the magnetic axis.
     out_d["Z_axis"]    = 0 #[ Z coord of the magnetic axis.
@@ -56,11 +61,32 @@ def get_equilibrium_meta(data_dir):
     out_d["psi_lcfs"]  = -5.4760172700000003e-03 #[ LCFS psi coordinate for 863 mg shot (LTX_103955_03.eqdsk).
     out_d["psi_conv"]  = out_d["psi_axis"] < out_d["psi_lcfs"] #[ =True psi increases outwards, =False it increases inwards.
   elif '103795_03' in data_dir:
-    out_d["R_axis"]    = 0.400392 #[ R coord of the magnetic axis.
-    out_d["Z_axis"]    = 0 #[ Z coord of the magnetic axis.
-    out_d["psi_axis"]  = 4.3835108700000000e-04 #[ psi at the magnetic axis.
-    out_d["psi_lcfs"]  = -5.5560311699999997e-03 #[ LCFS psi coordinate for passivated Li shot (LTX_103795_03.eqdsk).
-    out_d["psi_conv"]  = out_d["psi_axis"] < out_d["psi_lcfs"] #[ =True psi increases outwards, =False it increases inwards.
+    out_d["R_axis"]      = 0.400392 #[ R coord of the magnetic axis.
+    out_d["Z_axis"]      = 0 #[ Z coord of the magnetic axis.
+    out_d["psi_axis"]    = 4.3835108700000000e-04 #[ psi at the magnetic axis.
+    out_d["psi_lcfs"]    = -5.5560311699999997e-03 #[ LCFS psi coordinate for passivated Li shot (LTX_103795_03.eqdsk).
+    out_d["psi_conv"]    = out_d["psi_axis"] < out_d["psi_lcfs"] #[ =True psi increases outwards, =False it increases inwards.
+    out_d["R_LCFS_OMP"]  = 0.59476116093 #[ Major radius of the LCFS at OMP.
+    out_d["Lc_LCFS_OMP"] = 6.0 #[ Connection length close to the LCFS at the OMP.
+    out_d["B0"]          = 0.5*(1.566393e-01+6.265720e-01) #[ Reference magnetic field amplitude.
+  else:
+    print("get_psi_lcfs_axis: option NYI.")
+    print("  data_dir: ",data_dir)
+    sys.exit(1)
+
+  return out_d
+
+def get_plasma_meta(data_dir):
+  #[ Return plasma metadata/reference parameters.
+  out_d = {}
+  if '103955_04' in data_dir:
+    out_d["Te0"] = 0.5*320*lcu.eV #[ Reference electron temperature.
+    out_d["Ti0"] = 0.5*out_d["Te0"] #[ Reference ion temperature.
+    out_d["n0"]  = 0.5*1.6e19 #[ Reference density.
+  elif '103795_03' in data_dir:
+    out_d["Te0"] = 0.5*220*lcu.eV #[ Reference electron temperature.
+    out_d["Ti0"] = 0.5*out_d["Te0"] #[ Reference ion temperature.
+    out_d["n0"]  = 0.5*2.6e19 #[ Reference density.
   else:
     print("get_psi_lcfs_axis: option NYI.")
     print("  data_dir: ",data_dir)
@@ -900,6 +926,172 @@ if plot_nT_vs_x_multisim:
       h5f.close()
 
     fig_h.savefig(out_fig_dir+fig_file_name+figure_file_format)
+    plt.close()
+
+  else:
+    plt.show()
+
+#................................................................................#
+
+def calc_plasma_frequency(n, m, eps0, eV):
+  #[ Calculate the plasma frequency
+  return np.sqrt(n*eV*eV/m/eps0)
+
+def calc_coulomb_log(ns, nr, ms, mr, Ts, Tr, qs, qr, bmag_mid, eps0, hbar, eV):
+  #[ Calculate the Coulomb Logarithm
+  vts = np.sqrt(Ts/ms) #[ Thermal velocity for species s
+  vtr = np.sqrt(Tr/mr)  #[ Thermal velocity for species r
+  wps = calc_plasma_frequency(ns,ms, eps0, eV) #[ Plasma Frequency for species s
+  wpr = calc_plasma_frequency(nr,mr, eps0, eV) #[ Plasma frequency for species r
+  wcs = qs*bmag_mid/ms #[ Cyclotron frequency for species s
+  wcr = qr*bmag_mid/mr #[ Cyclotron frequency for species r
+  inner1 = (wps*wps + wcs*wcs)/(Ts/ms + 3*Ts/ms) + (wpr*wpr + wcr*wcr)/(Tr/mr + 3*Ts/ms)
+  u = 3*(vts*vts + vtr*vtr) #[ Relative velocity
+  msr = ms*mr/(ms+mr) #[ Reduced mass
+  inner2 = max(np.abs(qs*qr)/(4*np.pi*eps0*msr*u*u), hbar/(2*np.sqrt(eV)*msr*u))
+  inner = (1/inner1)*(1/inner2/inner2) + 1
+  return 0.5*np.log(inner)
+
+def calc_normNu(ns, nr, ms, mr, qs, qr, Ts, Tr, bmag_mid, eps0, hbar, eV):
+  #[ Calculate the normNu
+  clog = calc_coulomb_log(ns,nr,ms,mr,Ts, Tr, qs, qr, bmag_mid, eps0, hbar, eV)
+  cross_fac2 = 0.0
+  if (np.abs(ms - mr)/mr < 1e-16):
+    cross_fac2 = 1.0
+  else:
+    cross_fac2 = 2.0
+  return cross_fac2 * (1.0/ms)*(1.0/mr+1.0/ms)*np.power(qs*qr,2)*clog/(3.0*np.power(2.0*np.pi,1.5)*np.power(eps0,2))
+
+
+if plot_nu_vs_x:
+  #[ Plot the collision frequency vs. x.
+
+  plot_nuStar = True
+#  data_dir = '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-base/'
+#  fig_file_name_root = lcu.li863_prefix+'final_'
+  data_dir = '/pscratch/sd/m/mana/gkeyll/ltx/2d/lipass_103795_03-base/'
+  fig_file_name_root = lcu.lipass_prefix+'final_'
+  frame    = 20
+  species  = ['elc','elc'] #[ A combination of 'ion' and 'elc', e.g. ['elc','ion'] for nu_ei.
+  x_axis_psi_N = True #[ Whether to put x-axis in rho_pol.
+  
+  #[ Get indices along z of slices we wish to plot:
+  plotz = 0.0
+  title_str = r'$\theta=0,~t=1~\mathrm{ms}$'
+
+  eq_meta = get_equilibrium_meta(data_dir)
+  Lc = eq_meta["Lc_LCFS_OMP"]
+  R0 = eq_meta["R_LCFS_OMP"]
+  r0 = eq_meta["R_LCFS_OMP"] - eq_meta["R_axis"]
+  B0 = eq_meta["B0"]
+#  nuStar_Fac = q0*R0/np.power(r0/R0, 3./2.)
+  nuStar_Fac = Lc/(2.0*np.pi*np.power(r0/R0, 3./2.))
+
+  plasma_meta = get_plasma_meta(data_dir)
+  n0 = plasma_meta["n0"]
+  Te0 = plasma_meta["Te0"]
+  Ti0 = plasma_meta["Ti0"]
+
+  me = lcu.mass_elc
+  mi = lcu.mass_ion
+  qe = lcu.charge_elc
+  qi = lcu.charge_ion
+
+  ylabel = ''
+  nu_file_str = ''
+  normNu = -1.0
+  if species[0] == 'elc':
+    if species[1] == 'elc':
+      ylabel = r'$\nu_{ee}$'
+      nu_file_str = 'nu_ee'
+      normNu = calc_normNu(n0, n0, me, me, qe, qe, Te0, Te0, B0, lcu.eps0, lcu.hbar, lcu.eV)
+    elif species[1] == 'ion':                                                            
+      ylabel = r'$\nu_{ei}$'                                                       
+      nu_file_str = 'nu_ei'                                                           
+      normNu = calc_normNu(n0, n0, me, mi, qe, qi, Te0, Ti0, B0, lcu.eps0, lcu.hbar, lcu.eV)
+  elif species[0] == 'ion':                                                              
+    if species[1] == 'elc':                                                              
+      ylabel = r'$\nu_{ie}$'                                                       
+      nu_file_str = 'nu_ie'                                                           
+      normNu = calc_normNu(n0, n0, mi, me, qi, qe, Ti0, Te0, B0, lcu.eps0, lcu.hbar, lcu.eV)
+    elif species[1] == 'ion':                                                            
+      ylabel = r'$\nu_{ii}$'                                                       
+      nu_file_str = 'nu_ii'                                                           
+      normNu = calc_normNu(n0, n0, mi, mi, qi, qi, Ti0, Ti0, B0, lcu.eps0, lcu.hbar, lcu.eV)
+
+  if plot_nuStar:
+    assert species[0] == species[1], 'Species must be the same is plot_nuStar == True'
+    if species[0] == 'elc':
+      ylabel = r'$\nu_{e}^*=\nu_{ee}L_c/(2\pi\epsilon^{3/2}v_{te})$'
+      nu_file_str = 'nu_eStar'
+    else:
+      ylabel = r'$\nu_{i}^*=\nu_{ii}L_c/(2\pi\epsilon^{3/2}v_{ti})$'
+      nu_file_str = 'nu_iStar'
+
+  file_path = data_dir+sim_name+'-%s_BiMaxwellianMoments_'+str(frame)+file_fmt
+
+  #[ Load the grid.
+  xIntC, _, nxIntC, lxIntC, dxIntC, _ = pgu.getGrid(file_path % 'elc',poly_order,basis_type,location='center')
+  
+  x_coord = xIntC[0]
+
+  #[ Get indices along z of slices we wish to plot:
+  z_coord = xIntC[1]
+  plotzIdx = np.argmin(np.abs(z_coord-plotz))
+
+  #[ Load the data.
+  dens_r = getInterpDataComp(file_path % species[1], poly_order, basis_type, 'den')
+  vtsq_r = getInterpDataComp(file_path % species[1], poly_order, basis_type, 'temp')
+  vtsq_s = getInterpDataComp(file_path % species[0], poly_order, basis_type, 'temp')
+
+  dens_r_slice = dens_r[:,plotzIdx]
+  vtsq_r_slice = vtsq_r[:,plotzIdx]
+  vtsq_s_slice = vtsq_s[:,plotzIdx]
+
+  #[ Collision frequency.
+  nu_sr = normNu * dens_r_slice / np.power(np.sqrt(vtsq_s_slice+vtsq_r_slice),3)
+  if plot_nuStar:
+    nu_sr = nu_sr * nuStar_Fac / np.sqrt(vtsq_s_slice)
+
+  xlabel = r'$\psi$ (T m$^2$)'
+  if x_axis_psi_N:
+    eq_meta = get_equilibrium_meta(data_dir)
+    x_coord = lcu.psi_N(x_coord, eq_meta["psi_lcfs"], eq_meta["psi_axis"])
+    xlabel = r'$\psi_N$'
+    if not eq_meta["psi_conv"]:
+      x_coord = x_coord[::-1]
+      data_slice = nu_sr[::-1]
+
+  #[ Prepare figure.
+  fig_prop = (6.5, 3.5)
+  ax_pos   = [[0.18, 0.16, 0.8, 0.76],]
+  fig_h    = plt.figure(figsize=fig_prop)
+  ax_h     = [fig_h.add_axes(pos) for pos in ax_pos]
+
+  #[ Plot data
+  spl00_line0_x = x_coord
+  spl00_line0_y = data_slice
+
+  hpla = list()
+  hpla.append(ax_h[0].plot(spl00_line0_x, spl00_line0_y, color=lcu.default_colors[0],
+                           linestyle=lcu.default_line_styles[0], marker=lcu.default_markers[0]))
+
+  ax_h[0].set_xlabel(xlabel, fontsize=lcu.xy_label_font_size, labelpad=0)
+  ax_h[0].set_ylabel(ylabel, fontsize=lcu.xy_label_font_size, labelpad=0)
+  ax_h[0].set_title(title_str, fontsize=lcu.xy_label_font_size)
+  lcu.set_tick_font_size(ax_h[0],lcu.tick_font_size)
+  ax_h[0].set_xlim(x_coord[0], x_coord[-1])
+
+  if out_figure_file:
+    fig_file_name = output_prefix+fig_file_name_root+nu_file_str
+
+    if save_data:
+      h5f = h5py.File(out_data_dir+fig_file_name+'.h5', "w")
+      h5f.create_dataset('subplot00_nodes_xvalues', np.shape(spl00_line0_x), dtype='f8', data=spl00_line0_x)
+      h5f.create_dataset('subplot00_nodes_yvalues', np.shape(spl00_line0_y), dtype='f8', data=spl00_line0_y)
+      h5f.close()
+
+    fig_h.savefig(out_fig_dir+fig_file_name+nu_file_str+figure_file_format)
     plt.close()
 
   else:

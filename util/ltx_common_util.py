@@ -18,6 +18,8 @@ liComp863pass_prefix = 'liComp863mgPass_'
 li863_legend = '863 mg'
 lipass_legend = 'passivated'
 
+eps0, mu0 = 8.8541878176204e-12, 1.2566370614359e-06
+hbar      = 6.62606896e-34/(2.0*np.pi)
 eV        = 1.602176487e-19
 me, mp    = 9.10938215e-31, 1.672621637e-27
 charge_elc, charge_ion = -eV, eV
