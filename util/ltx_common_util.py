@@ -12,6 +12,11 @@ import numpy as np
 #[ Prefixes in filenames for 863 mg and passivated Li shots.
 li863_prefix = 'li863mg_'
 lipass_prefix = 'liPass_'
+liComp863pass_prefix = 'liComp863mgPass_'
+
+#[ Prefixes in filenames for 863 mg and passivated Li shots.
+li863_legend = '863 mg'
+lipass_legend = 'passivated'
 
 eV        = 1.602176487e-19
 me, mp    = 9.10938215e-31, 1.672621637e-27

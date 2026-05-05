@@ -25,14 +25,15 @@ plot_vs_x             = False  #[ Plot a quantity at the outboard midplane.
 plot_nT_vs_x          = False  #[ Plot density and temperature profiles vs. x.
 plot_src_mom_vs_x     = False  #[ Plot source moments vs. x.
 plot_src_int_mom_vs_t = False  #[ Plot source integrated moments vs. t.
-plot_vs_RZ            = True  #[ Plot a quantity at the R-Z midplane.
+plot_vs_RZ            = False  #[ Plot a quantity at the R-Z midplane.
+plot_nT_vs_x_multisim = True  #[ Plot density and temperature profiles vs. x for multiple sims.
 
 out_data_dir  = './data/'
 out_fig_dir   = './figures/'
 output_prefix = 'ltx_gkeyll_'
 
-save_data          = True    #[ Indicate whether to save data in plot to HDF5 file.
-out_figure_file    = True     #[ Output a figure file?.
+save_data          = False    #[ Indicate whether to save data in plot to HDF5 file.
+out_figure_file    = False     #[ Output a figure file?.
 figure_file_format = '.png'    #[ Can be .png, .pdf, .ps, .eps, .svg.
 
 sim_name   = 'gk_ltx_iwl_2x2v_p1'      #[ Root name of files to process.
@@ -62,6 +63,7 @@ def get_equilibrium_meta(data_dir):
     out_d["psi_conv"]  = out_d["psi_axis"] < out_d["psi_lcfs"] #[ =True psi increases outwards, =False it increases inwards.
   else:
     print("get_psi_lcfs_axis: option NYI.")
+    print("  data_dir: ",data_dir)
     sys.exit(1)
 
   return out_d
@@ -741,6 +743,160 @@ if plot_vs_RZ:
       h5f.create_dataset('subplot00_xvalues', np.shape(spl00_x), dtype='f8', data=spl00_x)
       h5f.create_dataset('subplot00_yvalues', np.shape(spl00_y), dtype='f8', data=spl00_y)
       h5f.create_dataset('subplot00_zvalues', np.shape(spl00_z), dtype='f8', data=spl00_z)
+      h5f.close()
+
+    fig_h.savefig(out_fig_dir+fig_file_name+figure_file_format)
+    plt.close()
+
+  else:
+    plt.show()
+
+#................................................................................#
+
+if plot_nT_vs_x_multisim:
+  #[ Plot density and temperature vs x for multimple sims:
+
+  data_dir = [
+    '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-base/',
+    '/pscratch/sd/m/mana/gkeyll/ltx/2d/lipass_103795_03-base/',
+  ]
+  legend_strs = [
+    lcu.li863_legend,
+    lcu.lipass_legend,
+  ]
+
+  x_axis_psi_N = True #[ Whether to put x-axis in rho_pol.
+  plot_exp_data = False #[ Whether to plot experimental data.
+  
+  frame = 20   #[ Frame number.
+  y_labels = [
+#    r'$n_e(\theta=0,t=0)$ (m$^{-3}$)',
+#    r'$T_e(\theta=0,t=0)$ (eV)',
+#    r'$T_i(\theta=0,t=0)$ (eV)',
+    r'$n_e(\theta=0,t=1~\mathrm{ms})$ (m$^{-3}$)',
+    r'$T_e(\theta=0,t=1~\mathrm{ms})$ (eV)',
+    r'$T_i(\theta=0,t=1~\mathrm{ms})$ (eV)',
+  ]
+
+  fig_file_name_root = lcu.liComp863pass_prefix+'final_den_temp'
+
+  plotz = 0.0 #[ Computational z coordinate to plot at.
+
+  #[ Prepare figure.
+  fig_prop = (12., 3.6)
+  ax_pos   = [[0.08, 0.15, 0.25, 0.78],[0.41, 0.15, 0.25, 0.78],[0.74, 0.15, 0.25, 0.78],]
+  fig_h    = plt.figure(figsize=fig_prop)
+  ax_h     = [fig_h.add_axes(pos) for pos in ax_pos]
+  
+  file_path = list()
+  spl00_line0_x = list()
+  spl01_line0_x = list()
+  spl02_line0_x = list()
+  spl00_line0_y = list()
+  spl01_line0_y = list()
+  spl02_line0_y = list()
+  hpla, hplb, hplc = list(), list(), list()
+  for dI in range(len(data_dir)):
+
+    file_path.append([
+        data_dir[dI]+sim_name+'-elc_BiMaxwellianMoments_'+str(frame)+file_fmt,
+        data_dir[dI]+sim_name+'-ion_BiMaxwellianMoments_'+str(frame)+file_fmt,
+    ])
+  
+    #[ Load the grid.
+    xIntC, _, nxIntC, lxIntC, dxIntC, _ = pgu.getGrid(file_path[dI][0],poly_order,basis_type,location='center')
+    
+    #[ Get indices along z of slices we wish to plot:
+    z_coord = xIntC[1]
+    plotzIdx = np.argmin(np.abs(z_coord-plotz))
+  
+    #[ Load the data.
+    elc_dens = getInterpDataComp(file_path[dI][0], poly_order, basis_type, 'den')
+    elc_temp = (lcu.mass_elc/lcu.eV)*getInterpDataComp(file_path[dI][0], poly_order, basis_type, 'temp')
+    ion_temp = (lcu.mass_ion/lcu.eV)*getInterpDataComp(file_path[dI][1], poly_order, basis_type, 'temp')
+  
+    elc_dens_slice = elc_dens[:,plotzIdx]
+    elc_temp_slice = elc_temp[:,plotzIdx]
+    ion_temp_slice = ion_temp[:,plotzIdx]
+  
+    x_coord = xIntC[0]
+    xlabel = r'$\psi$ (T m$^2$)'
+    if x_axis_psi_N:
+      eq_meta = get_equilibrium_meta(data_dir[dI])
+      x_coord = lcu.psi_N(x_coord, eq_meta["psi_lcfs"], eq_meta["psi_axis"])
+      xlabel = r'$\psi_N$'
+      if not eq_meta["psi_conv"]:
+        x_coord = x_coord[::-1]
+        elc_dens_slice = elc_dens_slice[::-1]
+        elc_temp_slice = elc_temp_slice[::-1]
+        ion_temp_slice = ion_temp_slice[::-1]
+  
+    #[ Plot data
+    spl00_line0_x.append(x_coord)
+    spl01_line0_x.append(x_coord)
+    spl02_line0_x.append(x_coord)
+    spl00_line0_y.append(elc_dens_slice)
+    spl01_line0_y.append(elc_temp_slice)
+    spl02_line0_y.append(ion_temp_slice)
+  
+    hpla.append(ax_h[0].plot(spl00_line0_x[dI], spl00_line0_y[dI], color=lcu.default_colors[dI], linestyle=lcu.default_line_styles[dI], marker=lcu.default_markers[dI]))
+    hplb.append(ax_h[1].plot(spl01_line0_x[dI], spl01_line0_y[dI], color=lcu.default_colors[dI], linestyle=lcu.default_line_styles[dI], marker=lcu.default_markers[dI]))
+    hplc.append(ax_h[2].plot(spl02_line0_x[dI], spl02_line0_y[dI], color=lcu.default_colors[dI], linestyle=lcu.default_line_styles[dI], marker=lcu.default_markers[dI]))
+  
+    if plot_exp_data:
+      #[ Load and plot experimental data.
+      exp_elc_den_file = '../experiment/maan_PoP_2024/Maan_2024-fig2c-li_863mg.csv'
+      exp_elc_temp_file = '../experiment/maan_PoP_2024/Maan_2024-fig2a-li_863mg.csv'
+  
+      exp_elc_den = np.loadtxt(open(exp_elc_den_file),delimiter=',')
+      exp_elc_temp = np.loadtxt(open(exp_elc_temp_file),delimiter=',')
+  
+      exp_elc_den_x, exp_elc_den_y = exp_elc_den[:,0], exp_elc_den[:,1]
+      exp_elc_temp_x, exp_elc_temp_y = exp_elc_temp[:,0], exp_elc_temp[:,1]
+  
+      spl00_line1_x = exp_elc_den_x 
+      spl00_line1_y = exp_elc_den_y
+      spl01_line1_x = exp_elc_temp_x 
+      spl01_line1_y = exp_elc_temp_y
+  
+      ax_h[0].plot(spl00_line1_x, spl00_line1_y, linestyle=lcu.default_line_styles[1], color='grey')
+      ax_h[1].plot(spl01_line1_x, spl01_line1_y, linestyle=lcu.default_line_styles[1], color='grey')
+    #end
+
+  ax_h[0].legend([hpla[0][0],hpla[1][0]],legend_strs,fontsize=lcu.legend_font_size, frameon=False, loc='upper right')
+  for i in range(len(ax_h)):
+    ax_h[i].set_xlabel(xlabel, fontsize=lcu.xy_label_font_size, labelpad=0)
+    ax_h[i].set_ylabel(y_labels[i], fontsize=lcu.xy_label_font_size)
+    ax_h[i].yaxis.get_offset_text().set_size(lcu.tick_font_size)
+    lcu.set_tick_font_size(ax_h[i],lcu.tick_font_size)
+    ax_h[i].set_xlim(x_coord[0], x_coord[-1])
+  # end
+
+  if out_figure_file:
+    fig_file_suffix = 'z1slice'
+    if abs((plotz-z_coord[0])/z_coord[0]) < 1e-5:
+      fig_file_suffix = 'z1min'
+    elif abs(plotz-0.5*(z_coord[0]+z_coord[-1])) < 1e-5:
+      fig_file_suffix = 'z1mid'
+    elif abs((plotz-z_coord[-1])/z_coord[-1]) < 1e-5:
+      fig_file_suffix = 'z1max'
+
+    fig_file_name = output_prefix+fig_file_name_root+'_'+fig_file_suffix
+
+    if save_data:
+      h5f = h5py.File(out_data_dir+fig_file_name+'.h5', "w")
+      h5f.create_dataset('subplot00_line0_xvalues', np.shape(spl00_line0_x), dtype='f8', data=spl00_line0_x)
+      h5f.create_dataset('subplot00_line0_yvalues', np.shape(spl00_line0_y), dtype='f8', data=spl00_line0_y)
+      h5f.create_dataset('subplot01_line0_xvalues', np.shape(spl01_line0_x), dtype='f8', data=spl01_line0_x)
+      h5f.create_dataset('subplot01_line0_yvalues', np.shape(spl01_line0_y), dtype='f8', data=spl01_line0_y)
+      h5f.create_dataset('subplot02_line0_xvalues', np.shape(spl02_line0_x), dtype='f8', data=spl02_line0_x)
+      h5f.create_dataset('subplot02_line0_yvalues', np.shape(spl02_line0_y), dtype='f8', data=spl02_line0_y)
+      if plot_exp_data:
+        h5f.create_dataset('subplot00_line1_xvalues', np.shape(spl00_line1_x), dtype='f8', data=spl00_line1_x)
+        h5f.create_dataset('subplot00_line1_yvalues', np.shape(spl00_line1_y), dtype='f8', data=spl00_line1_y)
+        h5f.create_dataset('subplot01_line1_xvalues', np.shape(spl01_line1_x), dtype='f8', data=spl01_line1_x)
+        h5f.create_dataset('subplot01_line1_yvalues', np.shape(spl01_line1_y), dtype='f8', data=spl01_line1_y)
+      # end
       h5f.close()
 
     fig_h.savefig(out_fig_dir+fig_file_name+figure_file_format)

@@ -24,10 +24,10 @@ import sys #[ For error exit.
 sys.path.insert(0, '../util/')
 import ltx_common_util as lcu
 
-plot_grids_RZ_li863mg           = False  #[ Grids on the R-Z plane of 863 mg simulation.
-plot_den_omp_init_li863mg       = False  #[ Initial n at outboard midplane (OMP) of 863 mg simulation.
-plot_den_temp_omp_init_li863mg  = False  #[ Initial n and T profiles at OMP.
-plot_den_temp_omp_final_li863mg = False  #[ Final n and T profiles at OMP.
+plot_grids_RZ_li863mg           = True  #[ Grids on the R-Z plane of 863 mg simulation.
+plot_den_omp_init_li863mg       = True  #[ Initial n at outboard midplane (OMP) of 863 mg simulation.
+plot_den_temp_omp_init_li863mg  = True  #[ Initial n and T profiles at OMP.
+plot_den_temp_omp_final_li863mg = True  #[ Final n and T profiles at OMP.
 plot_moms_RZ_final_li863mg      = True  #[ Final n, upar, Tpar and Tperp profiles on R-Z plane.
 
 gke_data_dir = '../gkeyll/data/' #[ Location of reduced Gkeyll data.
@@ -79,17 +79,17 @@ if plot_grids_RZ_li863mg:
 
   #[ Load XGC nodes, edges and psi.
   xgc_data = h5py.File(xgc_data_file, "r")
-  xgc_spl00_nodes_x      = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_nodes_xvalues')
-  xgc_spl00_nodes_y      = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_nodes_yvalues')
-  xgc_spl00_conn         = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_line_connections')
-#  xgc_spl00_edges_constx = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_edges_constx')
-#  xgc_spl00_edges_consty = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_edges_consty')
-#  xgc_spl00_psi_x        = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_psi_xvalues')
-#  xgc_spl00_psi_y        = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_psi_yvalues')
-#  xgc_spl00_psi_z        = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_psi_zvalues')
+  xgc_spl01_nodes_x      = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_nodes_xvalues')
+  xgc_spl01_nodes_y      = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_nodes_yvalues')
+  xgc_spl01_conn         = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_line_connections')
+#  xgc_spl01_edges_constx = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_edges_constx')
+#  xgc_spl01_edges_consty = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_edges_consty')
+#  xgc_spl01_psi_x        = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_psi_xvalues')
+#  xgc_spl01_psi_y        = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_psi_yvalues')
+#  xgc_spl01_psi_z        = lcu.h5data_to_numpy_array(xgc_data, 'subplot00_psi_zvalues')
   xgc_data.close()
 
-  triang = mtri.Triangulation(xgc_spl00_nodes_x,xgc_spl00_nodes_y,xgc_spl00_conn)
+  triang = mtri.Triangulation(xgc_spl01_nodes_x,xgc_spl01_nodes_y,xgc_spl01_conn)
 
   #[ Load wall coordinates.
   wall_data = np.loadtxt(open(ltx_vv_file),delimiter=',')
@@ -112,12 +112,12 @@ if plot_grids_RZ_li863mg:
 
   #[ Plot XGC nodes, edges and psi.
   hplb = list()
-#  hplb.append(ax_h[1].plot(xgc_spl00_nodes_x,xgc_spl00_nodes_y,marker=".", color=nodes_color, linestyle="none"))
+#  hplb.append(ax_h[1].plot(xgc_spl01_nodes_x,xgc_spl01_nodes_y,marker=".", color=nodes_color, linestyle="none"))
   hplb.append(ax_h[1].triplot(triang, color=edges_color,linewidth=0.2))
-#  hplb.append(ax_h[1].add_collection(LineCollection(xgc_spl00_edges_consty, color=edges_color)))
-#  hplb.append(ax_h[1].add_collection(LineCollection(xgc_spl00_edges_constx, color=edges_color)))
-#  hplb.append(ax_h[1].add_collection(LineCollection(xgc_spl00_edges_consty, color=edges_color)))
-#  hplb.append(ax_h[1].contour(xgc_spl00_psi_x, xgc_spl00_psi_y, xgc_spl00_psi_z))
+#  hplb.append(ax_h[1].add_collection(LineCollection(xgc_spl01_edges_consty, color=edges_color)))
+#  hplb.append(ax_h[1].add_collection(LineCollection(xgc_spl01_edges_constx, color=edges_color)))
+#  hplb.append(ax_h[1].add_collection(LineCollection(xgc_spl01_edges_consty, color=edges_color)))
+#  hplb.append(ax_h[1].contour(xgc_spl01_psi_x, xgc_spl01_psi_y, xgc_spl01_psi_z))
   plt.text(0.06, 0.93, r'(b) XGC', fontsize=16, color='black', transform=ax_h[1].transAxes)
 
   ax_h[0].set_ylabel(r'Z (m)', fontsize=lcu.xy_label_font_size)
@@ -142,13 +142,13 @@ if plot_grids_RZ_li863mg:
       h5f.create_dataset('subplot00_gke_psi_zvalues'  , np.shape(gke_spl00_psi_z       ), dtype='f8', data=gke_spl00_psi_z       )
       h5f.create_dataset('subplot00_wall_xvalues'     , np.shape(wall_x), dtype='f8', data=wall_x)
       h5f.create_dataset('subplot00_wall_yvalues'     , np.shape(wall_y), dtype='f8', data=wall_y)
-      h5f.create_dataset('subplot01_xgc_nodes_xvalues', np.shape(xgc_spl00_nodes_x     ), dtype='f8', data=xgc_spl00_nodes_x     )
-      h5f.create_dataset('subplot01_xgc_nodes_yvalues', np.shape(xgc_spl00_nodes_y     ), dtype='f8', data=xgc_spl00_nodes_y     )
-      h5f.create_dataset('subplot01_xgc_edges_constx' , np.shape(xgc_spl00_edges_constx), dtype='f8', data=xgc_spl00_edges_constx)
-      h5f.create_dataset('subplot01_xgc_edges_consty' , np.shape(xgc_spl00_edges_consty), dtype='f8', data=xgc_spl00_edges_consty)
-      h5f.create_dataset('subplot01_xgc_psi_xvalues'  , np.shape(xgc_spl00_psi_x       ), dtype='f8', data=xgc_spl00_psi_x       )
-      h5f.create_dataset('subplot01_xgc_psi_yvalues'  , np.shape(xgc_spl00_psi_y       ), dtype='f8', data=xgc_spl00_psi_y       )
-      h5f.create_dataset('subplot01_xgc_psi_zvalues'  , np.shape(xgc_spl00_psi_z       ), dtype='f8', data=xgc_spl00_psi_z       )
+      h5f.create_dataset('subplot01_xgc_nodes_xvalues', np.shape(xgc_spl01_nodes_x     ), dtype='f8', data=xgc_spl01_nodes_x     )
+      h5f.create_dataset('subplot01_xgc_nodes_yvalues', np.shape(xgc_spl01_nodes_y     ), dtype='f8', data=xgc_spl01_nodes_y     )
+#      h5f.create_dataset('subplot01_xgc_edges_constx' , np.shape(xgc_spl01_edges_constx), dtype='f8', data=xgc_spl01_edges_constx)
+#      h5f.create_dataset('subplot01_xgc_edges_consty' , np.shape(xgc_spl01_edges_consty), dtype='f8', data=xgc_spl01_edges_consty)
+#      h5f.create_dataset('subplot01_xgc_psi_xvalues'  , np.shape(xgc_spl01_psi_x       ), dtype='f8', data=xgc_spl01_psi_x       )
+#      h5f.create_dataset('subplot01_xgc_psi_yvalues'  , np.shape(xgc_spl01_psi_y       ), dtype='f8', data=xgc_spl01_psi_y       )
+#      h5f.create_dataset('subplot01_xgc_psi_zvalues'  , np.shape(xgc_spl01_psi_z       ), dtype='f8', data=xgc_spl01_psi_z       )
       h5f.create_dataset('subplot01_wall_xvalues'     , np.shape(wall_x), dtype='f8', data=wall_x)
       h5f.create_dataset('subplot01_wall_yvalues'     , np.shape(wall_y), dtype='f8', data=wall_y)
       h5f.close()
