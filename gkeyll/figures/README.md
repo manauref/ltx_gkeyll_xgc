@@ -28,3 +28,4 @@ Gkeyll figures
 - liPass_final_nu_ii_z1mid.png: final i-i collision frequency at the OMP for Li passivated shot.
 - liPass_final_nu_eStar_z1mid.png: final electron collisionality at the OMP for Li passivated shot.
 - liPass_final_nu_iStar_z1mid.png: final ion collisionality at the OMP for Li passivated shot.
+- liComp863mgPass_final_den_temp_z1mid.png: final density and temperature at OMP for Li 863 mg and passivated shots.

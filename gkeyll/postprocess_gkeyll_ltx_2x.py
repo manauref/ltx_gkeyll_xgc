@@ -26,9 +26,9 @@ plot_nT_vs_x          = False  #[ Sensity and temperature profiles vs. x.
 plot_src_mom_vs_x     = False  #[ Source moments vs. x.
 plot_src_int_mom_vs_t = False  #[ Source integrated moments vs. t.
 plot_vs_RZ            = False  #[ A quantity at the R-Z midplane.
-plot_nT_vs_x_multisim = False  #[ Density and temperature profiles vs. x for multiple sims.
+plot_nT_vs_x_multisim = True  #[ Density and temperature profiles vs. x for multiple sims.
 plot_nu_RZ            = False  #[ Collision frequency on RZ plane.
-plot_nu_vs_x          = True  #[ Collision frequency vs. x.
+plot_nu_vs_x          = False  #[ Collision frequency vs. x.
 
 out_data_dir  = './data/'
 out_fig_dir   = './figures/'
