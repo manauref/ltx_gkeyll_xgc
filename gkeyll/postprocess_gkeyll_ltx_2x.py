@@ -22,7 +22,7 @@ import ltx_common_util as lcu
 #[ Plotting options.
 plot_grid_RZ          = False  #[ Grid on RZ plane.
 plot_vs_x             = False  #[ A quantity at the outboard midplane.
-plot_nT_vs_x          = False  #[ Sensity and temperature profiles vs. x.
+plot_nT_vs_x          = True  #[ Sensity and temperature profiles vs. x.
 plot_src_mom_vs_x     = False  #[ Source moments vs. x.
 plot_src_int_mom_vs_t = False  #[ Source integrated moments vs. t.
 plot_vs_RZ            = False  #[ A quantity at the R-Z midplane.
@@ -35,8 +35,8 @@ out_data_dir  = './data/'
 out_fig_dir   = './figures/'
 output_prefix = 'ltx_gkeyll_'
 
-save_data          = False    #[ Indicate whether to save data in plot to HDF5 file.
-out_figure_file    = False     #[ Output a figure file?.
+save_data          = True    #[ Indicate whether to save data in plot to HDF5 file.
+out_figure_file    = True     #[ Output a figure file?.
 figure_file_format = '.png'    #[ Can be .png, .pdf, .ps, .eps, .svg.
 
 sim_name   = 'gk_ltx_iwl_2x2v_p1'      #[ Root name of files to process.
@@ -259,11 +259,12 @@ if plot_vs_x:
   x_axis_psi_N = True #[ Whether to put x-axis in rho_pol.
 
   quant      = 'elc_BiMaxwellianMoments' #[ Quantity to plot.
-  quant_comp = 'temp'                    #[ Component in file (den, upar, tpar, tperp, temp, or an int).
-  scale_fac  = lcu.mass_elc/lcu.eV               #[ Factor to multiply data by.
-#  ylabel     = r'$n_e(\theta=0,t=0)$ (m$^{-3}$)'       #[ Label for y axis.
+  quant_comp = 'den'                    #[ Component in file (den, upar, tpar, tperp, temp, or an int).
+  scale_fac  = 1.0               #[ Factor to multiply data by.
+#  scale_fac  = lcu.mass_elc/lcu.eV               #[ Factor to multiply data by.
+  ylabel     = r'$n_e(\theta=0,t=0)$ (m$^{-3}$)'       #[ Label for y axis.
 #  ylabel     = r'$u_{\parallel e}(\theta=0,t=0)$ (m/s)'       #[ Label for y axis.
-  ylabel     = r'$T_e(\theta=0,t=0)$ (eV)'       #[ Label for y axis.
+#  ylabel     = r'$T_e(\theta=0,t=0)$ (eV)'       #[ Label for y axis.
   frame      = 0                         #[ Frame number.
 
   fig_file_name_root = lcu.li863_prefix+'init_elc_den'
@@ -369,17 +370,17 @@ if plot_nT_vs_x:
   x_axis_psi_N = True #[ Whether to put x-axis in rho_pol.
   plot_exp_data = True #[ Whether to plot experimental data.
   
-  frame = 14   #[ Frame number.
+  frame = 0   #[ Frame number.
   y_labels = [
-#    r'$n_e(\theta=0,t=0)$ (m$^{-3}$)',
-#    r'$T_e(\theta=0,t=0)$ (eV)',
-#    r'$T_i(\theta=0,t=0)$ (eV)',
-    r'$n_e(\theta=0,t=0.7~\mathrm{ms})$ (m$^{-3}$)',
-    r'$T_e(\theta=0,t=0.7~\mathrm{ms})$ (eV)',
-    r'$T_i(\theta=0,t=0.7~\mathrm{ms})$ (eV)',
+    r'$n_e(\theta=0,t=0)$ (m$^{-3}$)',
+    r'$T_e(\theta=0,t=0)$ (eV)',
+    r'$T_i(\theta=0,t=0)$ (eV)',
+#    r'$n_e(\theta=0,t=0.7~\mathrm{ms})$ (m$^{-3}$)',
+#    r'$T_e(\theta=0,t=0.7~\mathrm{ms})$ (eV)',
+#    r'$T_i(\theta=0,t=0.7~\mathrm{ms})$ (eV)',
   ]
 
-  fig_file_name_root = lcu.li863_prefix+'final_den_temp'
+  fig_file_name_root = lcu.li863_prefix+'init_den_temp'
 
   plotz = 0.0 #[ Computational z coordinate to plot at.
 
@@ -705,18 +706,18 @@ if plot_vs_RZ:
 
   data_dir = '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-base/'
 
-  quant      = 'ion_BiMaxwellianMoments' #[ Quantity to plot.
-  quant_comp = 'temp'                    #[ Component in file (den, upar, tpar, tperp, temp, or an int).
-#  scale_fac  = 1.0               #[ Factor to multiply data by.
-  scale_fac  = lcu.mass_ion/lcu.eV               #[ Factor to multiply data by.
-#  zlabel     = r'$n_e(t=0.7~\mathrm{ms})$ (m$^{-3}$)'       #[ Label for y axis.
+  quant      = 'elc_BiMaxwellianMoments' #[ Quantity to plot.
+  quant_comp = 'den'                    #[ Component in file (den, upar, tpar, tperp, temp, or an int).
+  scale_fac  = 1.0               #[ Factor to multiply data by.
+#  scale_fac  = lcu.mass_ion/lcu.eV               #[ Factor to multiply data by.
+  zlabel     = r'$n_e(t=0)$ (m$^{-3}$)'       #[ Label for y axis.
 #  zlabel     = r'$u_{\parallel i}(t=0.7~\mathrm{ms})$ (km/s)'       #[ Label for y axis.
 #  zlabel     = r'$T_{\parallel e}(t=0.7~\mathrm{ms})$ (eV)'       #[ Label for y axis.
 #  zlabel     = r'$T_{\perp e}(t=0.7~\mathrm{ms})$ (eV)'       #[ Label for y axis.
-  zlabel     = r'$T_{i}(t=0.7~\mathrm{ms})$ (eV)'       #[ Label for y axis.
-  frame      = 14                         #[ Frame number.
+#  zlabel     = r'$T_{i}(t=0.7~\mathrm{ms})$ (eV)'       #[ Label for y axis.
+  frame      = 0                         #[ Frame number.
 
-  fig_file_name_root = lcu.li863_prefix+'final_ion_temp_RZ'
+  fig_file_name_root = lcu.li863_prefix+'init_elc_den_RZ'
 
   wall_file = '/global/homes/m/mana/perlmutter/gkeyll/code/gkyl-sims/ltx_gkeyll_xgc/experiment/LTXvessel.csv'
 
