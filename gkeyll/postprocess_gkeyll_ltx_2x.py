@@ -22,10 +22,10 @@ import ltx_common_util as lcu
 #[ Plotting options.
 plot_grid_RZ          = False  #[ Grid on RZ plane.
 plot_vs_x             = False  #[ A quantity at the outboard midplane.
-plot_nT_vs_x          = False  #[ Sensity and temperature profiles vs. x.
+plot_nT_vs_x          = True  #[ Sensity and temperature profiles vs. x.
 plot_src_mom_vs_x     = False  #[ Source moments vs. x.
 plot_src_int_mom_vs_t = False  #[ Source integrated moments vs. t.
-plot_vs_RZ            = True  #[ A quantity at the R-Z midplane.
+plot_vs_RZ            = False  #[ A quantity at the R-Z midplane.
 plot_nT_vs_x_multisim = False  #[ Density and temperature profiles vs. x for multiple sims.
 plot_nu_RZ            = False  #[ Collision frequency on RZ plane.
 plot_nu_vs_x          = False  #[ Collision frequency vs. x.
