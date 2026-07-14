@@ -359,6 +359,8 @@ void temp_init_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTR
   fout[0] = 0.8*Te0*(1.1 - tanh((9.0/Lx)*(psi_max-0.646767778*Lx-x)));
 }
 
+// Profiles used in the inner radial ghost cell.
+
 void density_bcx_lo(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   density_init(t, xn, fout, ctx);
@@ -439,7 +441,7 @@ create_ctx(void)
   double qi = eV; // ion charge
   double qe = -eV; // electron charge
 
-  char geqdsk_file[128] = "../../../experiment/li_863mg_103955_04/LTX_103955_04.eqdsk";
+  char geqdsk_file[128] = "../LTX_103955_04.eqdsk";
   // Get the LCFS and axis psi.
   struct gkyl_efit_inp efit_inp = {
     // psiRZ and related inputs
@@ -558,8 +560,8 @@ create_ctx(void)
   double mu_min_elc_c = 0.;
   double mu_max_elc_c = 1.;
 
-  double t_end = 8*500.0e-6;
-  int num_frames = 80;
+  double t_end = 1.0e-3;
+  int num_frames = 20;
   double write_phase_freq = 1.0; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -833,32 +835,32 @@ int main(int argc, char **argv)
     .diag_moments = { GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN, },
   };
 
-  struct gkyl_poisson_bias_line target_corner_bcs[] = {
-    {
-     .perp_dirs = {0, 1}, // Directions perpendicular to line.
-     .perp_coords = {ctx.psi_LCFS, ctx.z_min}, // Coordinates of the line in perpendicular directions.
-     .val = 0.0, // Biasing value.
-    },
-    {
-     .perp_dirs = {0, 1}, // Directions perpendicular to line.
-     .perp_coords = {ctx.psi_LCFS, ctx.z_max}, // Coordinates of the line in perpendicular directions.
-     .val = 0.0, // Biasing value.
-    },
-  };
-
-  struct gkyl_poisson_bias_line_list bias_line_list = {
-    .num_bias_line = 2,
-    .bl = target_corner_bcs,
-  };
+//  struct gkyl_poisson_bias_line target_corner_bcs[] = {
+//    {
+//     .perp_dirs = {0, 1}, // Directions perpendicular to line.
+//     .perp_coords = {ctx.psi_LCFS, ctx.z_min}, // Coordinates of the line in perpendicular directions.
+//     .val = 0.0, // Biasing value.
+//    },
+//    {
+//     .perp_dirs = {0, 1}, // Directions perpendicular to line.
+//     .perp_coords = {ctx.psi_LCFS, ctx.z_max}, // Coordinates of the line in perpendicular directions.
+//     .val = 0.0, // Biasing value.
+//    },
+//  };
+//
+//  struct gkyl_poisson_bias_line_list bias_line_list = {
+//    .num_bias_line = 2,
+//    .bl = target_corner_bcs,
+//  };
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
-    .gkfield_id = GKYL_GK_FIELD_ES_IWL,
+    .gkfield_id = GKYL_GK_FIELD_ES,
     .poisson_bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}, },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}, },
     },
-    .bias_line_list = &bias_line_list,
+//    .bias_line_list = &bias_line_list,
   };
 
   struct gkyl_efit_inp efit_inp = {
@@ -909,6 +911,7 @@ int main(int argc, char **argv)
 
     .num_species = 2,
     .species = { elc, ion },
+
     .field = field,
 
     .parallelism = {
