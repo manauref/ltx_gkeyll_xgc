@@ -22,13 +22,13 @@ import ltx_common_util as lcu
 #[ Plotting options.
 plot_grid_RZ          = False  #[ Grid on RZ plane.
 plot_vs_x             = False  #[ A quantity at the outboard midplane.
-plot_nT_vs_x          = True  #[ Sensity and temperature profiles vs. x.
+plot_nT_vs_x          = False  #[ Sensity and temperature profiles vs. x.
 plot_src_mom_vs_x     = False  #[ Source moments vs. x.
 plot_src_int_mom_vs_t = False  #[ Source integrated moments vs. t.
 plot_vs_RZ            = False  #[ A quantity at the R-Z midplane.
 plot_nT_vs_x_multisim = False  #[ Density and temperature profiles vs. x for multiple sims.
 plot_nu_RZ            = False  #[ Collision frequency on RZ plane.
-plot_nu_vs_x          = False  #[ Collision frequency vs. x.
+plot_nu_vs_x          = True  #[ Collision frequency vs. x.
 plot_int_mom_vs_t     = False   #[ Integrated moments vs. t.
 
 out_data_dir  = './data/'
@@ -968,18 +968,18 @@ def calc_normNu(ns, nr, ms, mr, qs, qr, Ts, Tr, bmag_mid, eps0, hbar, eV):
 if plot_nu_vs_x:
   #[ Plot the collision frequency vs. x.
 
-  plot_nuStar = False
-#  data_dir = '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-base/'
-#  fig_file_name_root = lcu.li863_prefix+'final_'
-  data_dir = '/pscratch/sd/m/mana/gkeyll/ltx/2d/lipass_103795_03-base/'
-  fig_file_name_root = lcu.lipass_prefix+'final_'
-  frame    = 20
+  plot_nuStar = True
+  data_dir = '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-base/'
+  fig_file_name_root = lcu.li863_prefix+'final_'
+#  data_dir = '/pscratch/sd/m/mana/gkeyll/ltx/2d/lipass_103795_03-base/'
+#  fig_file_name_root = lcu.lipass_prefix+'final_'
+  frame    = 14
   species  = ['elc','elc'] #[ A combination of 'ion' and 'elc', e.g. ['elc','ion'] for nu_ei.
   x_axis_psi_N = True #[ Whether to put x-axis in rho_pol.
   
   #[ Get indices along z of slices we wish to plot:
   plotz = 0.0
-  title_str = r'$\theta=0,~t=1~\mathrm{ms}$'
+  title_str = r'$\theta=0,~t=0.7~\mathrm{ms}$'
 
   eq_meta = get_equilibrium_meta(data_dir)
   Lc = eq_meta["Lc_LCFS_OMP"]
