@@ -28,15 +28,15 @@ plot_src_int_mom_vs_t = False  #[ Source integrated moments vs. t.
 plot_vs_RZ            = False  #[ A quantity at the R-Z midplane.
 plot_nT_vs_x_multisim = False  #[ Density and temperature profiles vs. x for multiple sims.
 plot_nu_RZ            = False  #[ Collision frequency on RZ plane.
-plot_nu_vs_x          = True  #[ Collision frequency vs. x.
+plot_nu_vs_x          = False  #[ Collision frequency vs. x.
 plot_int_mom_vs_t     = False   #[ Integrated moments vs. t.
 
 out_data_dir  = './data/'
 out_fig_dir   = './figures/'
 output_prefix = 'ltx_gkeyll_'
 
-save_data          = True    #[ Indicate whether to save data in plot to HDF5 file.
-out_figure_file    = True     #[ Output a figure file?.
+save_data          = False    #[ Indicate whether to save data in plot to HDF5 file.
+out_figure_file    = False     #[ Output a figure file?.
 figure_file_format = '.png'    #[ Can be .png, .pdf, .ps, .eps, .svg.
 
 sim_name   = 'gk_ltx_iwl_2x2v_p1'      #[ Root name of files to process.
@@ -676,7 +676,7 @@ if plot_src_int_mom_vs_t:
   ax_h[1].legend([hplb[0][0],hplb[1][0]],['e$^-$','H$^+$'],fontsize=lcu.legend_font_size, frameon=False, loc='upper right')
   plt.setp( ax_h[0].get_xticklabels(), visible=False)
   ax_h[1].set_xlabel(xlabel, fontsize=lcu.xy_label_font_size, labelpad=0)
-  ax_h[0].set_ylim(3.5e21, 3.8e21)
+  ax_h[0].set_ylim(3.2e21, 3.6e21)
   ax_h[1].set_ylim(100.0, 250.0)
 
   if out_figure_file:
@@ -1113,10 +1113,10 @@ if plot_nu_vs_x:
 if plot_int_mom_vs_t:
   #[ Plot integrated moments vs. t:
 
-#  data_dir = '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-base/'
-#  fig_file_name_root = lcu.li863_prefix+'int_moms'
-  data_dir = '/pscratch/sd/m/mana/gkeyll/ltx/2d/lipass_103795_03-base/'
-  fig_file_name_root = lcu.lipass_prefix+'int_moms'
+  data_dir = '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-base/'
+  fig_file_name_root = lcu.li863_prefix+'int_moms'
+#  data_dir = '/pscratch/sd/m/mana/gkeyll/ltx/2d/lipass_103795_03-base/'
+#  fig_file_name_root = lcu.lipass_prefix+'int_moms'
 
   xlabel = r'Time (ms)'
   y_labels = [
