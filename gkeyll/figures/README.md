@@ -3,6 +3,7 @@
 # Folder names
 
 - li863mg_103955_04-base: base Li 863 mg shot sim, w/ D=30 m^2/s.
+- li863mg_103955_04-ref: adjusted -base sources and bcx parameters to match experiment, and D=4 m^2/s.
 - lipass_103795_03-base: base passivated Li shot sim, w/ D=30 m^2/s.
 
 # Figure names

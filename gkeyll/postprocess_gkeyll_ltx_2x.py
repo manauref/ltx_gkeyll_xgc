@@ -22,17 +22,17 @@ import ltx_common_util as lcu
 #[ Plotting options.
 plot_grid_RZ          = False  #[ Grid on RZ plane.
 plot_vs_x             = False  #[ A quantity at the outboard midplane.
-plot_nT_vs_x          = True  #[ Sensity and temperature profiles vs. x.
+plot_nT_vs_x          = False  #[ Sensity and temperature profiles vs. x.
 plot_src_mom_vs_x     = False  #[ Source moments vs. x.
 plot_src_int_mom_vs_t = False  #[ Source integrated moments vs. t.
-plot_vs_RZ            = False  #[ A quantity at the R-Z midplane.
+plot_vs_RZ            = True  #[ A quantity at the R-Z midplane.
 plot_nT_vs_x_multisim = False  #[ Density and temperature profiles vs. x for multiple sims.
 plot_nu_RZ            = False  #[ Collision frequency on RZ plane.
 plot_nu_vs_x          = False  #[ Collision frequency vs. x.
 plot_int_mom_vs_t     = False   #[ Integrated moments vs. t.
 
-out_data_dir  = './data/'
-out_fig_dir   = './figures/'
+out_data_dir  = './data/li863mg_103955_04-ref/'
+out_fig_dir   = './figures/li863mg_103955_04-ref/'
 output_prefix = 'ltx_gkeyll_'
 
 save_data          = True    #[ Indicate whether to save data in plot to HDF5 file.
@@ -365,22 +365,22 @@ if plot_vs_x:
 if plot_nT_vs_x:
   #[ Plot density and temperature vs x:
 
-  data_dir = '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-base/'
+  data_dir = '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-base_Deq4p0_bcxDenT0p625_bcxTempT1p6/'
 
   x_axis_psi_N = True #[ Whether to put x-axis in rho_pol.
   plot_exp_data = True #[ Whether to plot experimental data.
   
-  frame = 0   #[ Frame number.
+  frame = 11   #[ Frame number.
   y_labels = [
-    r'$n_e(\theta=0,t=0)$ (m$^{-3}$)',
-    r'$T_e(\theta=0,t=0)$ (eV)',
-    r'$T_i(\theta=0,t=0)$ (eV)',
-#    r'$n_e(\theta=0,t=0.7~\mathrm{ms})$ (m$^{-3}$)',
-#    r'$T_e(\theta=0,t=0.7~\mathrm{ms})$ (eV)',
-#    r'$T_i(\theta=0,t=0.7~\mathrm{ms})$ (eV)',
+#    r'$n_e(\theta=0,t=0)$ (m$^{-3}$)',
+#    r'$T_e(\theta=0,t=0)$ (eV)',
+#    r'$T_i(\theta=0,t=0)$ (eV)',
+    r'$n_e(\theta=0,t=0.55~\mathrm{ms})$ (m$^{-3}$)',
+    r'$T_e(\theta=0,t=0.55~\mathrm{ms})$ (eV)',
+    r'$T_i(\theta=0,t=0.55~\mathrm{ms})$ (eV)',
   ]
 
-  fig_file_name_root = lcu.li863_prefix+'init_den_temp'
+  fig_file_name_root = lcu.li863_prefix+'final_den_temp'
 
   plotz = 0.0 #[ Computational z coordinate to plot at.
 
@@ -478,6 +478,7 @@ if plot_nT_vs_x:
     fig_file_name = output_prefix+fig_file_name_root+'_'+fig_file_suffix
 
     if save_data:
+      pgu.checkMkdir(out_data_dir)
       h5f = h5py.File(out_data_dir+fig_file_name+'.h5', "w")
       h5f.create_dataset('subplot00_line0_xvalues', np.shape(spl00_line0_x), dtype='f8', data=spl00_line0_x)
       h5f.create_dataset('subplot00_line0_yvalues', np.shape(spl00_line0_y), dtype='f8', data=spl00_line0_y)
@@ -493,6 +494,7 @@ if plot_nT_vs_x:
       # end
       h5f.close()
 
+    pgu.checkMkdir(out_fig_dir)
     fig_h.savefig(out_fig_dir+fig_file_name+figure_file_format)
     plt.close()
 
@@ -704,20 +706,20 @@ if plot_src_int_mom_vs_t:
 if plot_vs_RZ:
   #[ Plot a variable on the R-Z midplane.
 
-  data_dir = '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-base/'
+  data_dir = '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-base_Deq4p0_bcxDenT0p625_bcxTempT1p6/'
 
-  quant      = 'elc_BiMaxwellianMoments' #[ Quantity to plot.
-  quant_comp = 'den'                    #[ Component in file (den, upar, tpar, tperp, temp, or an int).
-  scale_fac  = 1.0               #[ Factor to multiply data by.
-#  scale_fac  = lcu.mass_ion/lcu.eV               #[ Factor to multiply data by.
-  zlabel     = r'$n_e(t=0)$ (m$^{-3}$)'       #[ Label for y axis.
-#  zlabel     = r'$u_{\parallel i}(t=0.7~\mathrm{ms})$ (km/s)'       #[ Label for y axis.
-#  zlabel     = r'$T_{\parallel e}(t=0.7~\mathrm{ms})$ (eV)'       #[ Label for y axis.
-#  zlabel     = r'$T_{\perp e}(t=0.7~\mathrm{ms})$ (eV)'       #[ Label for y axis.
+  quant      = 'ion_BiMaxwellianMoments' #[ Quantity to plot.
+  quant_comp = 'tperp'                    #[ Component in file (den, upar, tpar, tperp, temp, or an int).
+#  scale_fac  = 1.0               #[ Factor to multiply data by.
+  scale_fac  = lcu.mass_ion/lcu.eV               #[ Factor to multiply data by.
+#  zlabel     = r'$n_e(t=0.55~\mathrm{ms})$ (m$^{-3}$)'       #[ Label for y axis.
+#  zlabel     = r'$u_{\parallel i}(t=0.55~\mathrm{ms})$ (km/s)'       #[ Label for y axis.
+#  zlabel     = r'$T_{\parallel i}(t=0.55~\mathrm{ms})$ (eV)'       #[ Label for y axis.
+  zlabel     = r'$T_{\perp i}(t=0.55~\mathrm{ms})$ (eV)'       #[ Label for y axis.
 #  zlabel     = r'$T_{i}(t=0.7~\mathrm{ms})$ (eV)'       #[ Label for y axis.
-  frame      = 0                         #[ Frame number.
+  frame      = 11                         #[ Frame number.
 
-  fig_file_name_root = lcu.li863_prefix+'init_elc_den_RZ'
+  fig_file_name_root = lcu.li863_prefix+'final_ion_tperp_RZ'
 
   wall_file = '/global/homes/m/mana/perlmutter/gkeyll/code/gkyl-sims/ltx_gkeyll_xgc/experiment/LTXvessel.csv'
 
@@ -725,7 +727,7 @@ if plot_vs_RZ:
   ylabel = r'$Z$ (m)'
 
   file_path = data_dir+sim_name+'-'+quant+'_'+str(frame)+file_fmt
-  c2p_path  = data_dir+sim_name+'-mapc2p_deflated'+file_fmt
+  c2p_path  = data_dir+sim_name+'-geo_corn_mapc2p_deflated'+file_fmt
 
   #[ Load the data.
   xInt, data = getInterpDataComp(file_path, poly_order, basis_type, quant_comp, mapc2p=c2p_path)
@@ -768,12 +770,14 @@ if plot_vs_RZ:
     fig_file_name = output_prefix+fig_file_name_root
 
     if save_data:
+      pgu.checkMkdir(out_data_dir)
       h5f = h5py.File(out_data_dir+fig_file_name+'.h5', "w")
       h5f.create_dataset('subplot00_xvalues', np.shape(spl00_x), dtype='f8', data=spl00_x)
       h5f.create_dataset('subplot00_yvalues', np.shape(spl00_y), dtype='f8', data=spl00_y)
       h5f.create_dataset('subplot00_zvalues', np.shape(spl00_z), dtype='f8', data=spl00_z)
       h5f.close()
 
+    pgu.checkMkdir(out_fig_dir)
     fig_h.savefig(out_fig_dir+fig_file_name+figure_file_format)
     plt.close()
 
