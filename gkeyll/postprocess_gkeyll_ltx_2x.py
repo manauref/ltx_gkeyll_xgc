@@ -12,8 +12,9 @@ import postgkyl as pg
 import click #[ For using pgkyl commands.
 from postgkyl.pgkyl import cli #[ For using pgkyl commands.
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 import sys #[ For error exit.
-import h5py #[ For saving reduced data.
+#import h5py #[ For saving reduced data.
 import pgkylUtil as pgu #[ Some postgkyl wrappers.
 #[ Append path to utilities folder.
 sys.path.insert(0, '../util/')
@@ -25,20 +26,20 @@ plot_vs_x             = False  #[ A quantity at the outboard midplane.
 plot_nT_vs_x          = False  #[ Sensity and temperature profiles vs. x.
 plot_src_mom_vs_x     = False  #[ Source moments vs. x.
 plot_src_int_mom_vs_t = False  #[ Source integrated moments vs. t.
-plot_vs_RZ            = False  #[ A quantity at the R-Z midplane.
-plot_nT_vs_x_multisim = True  #[ Density and temperature profiles vs. x for multiple sims.
+plot_vs_RZ            = True  #[ A quantity at the R-Z midplane.
+plot_nT_vs_x_multisim = False  #[ Density and temperature profiles vs. x for multiple sims.
 plot_nu_RZ            = False  #[ Collision frequency on RZ plane.
 plot_nu_vs_x          = False  #[ Collision frequency vs. x.
 plot_int_mom_vs_t     = False   #[ Integrated moments vs. t.
 
-out_data_dir  = './data/'
-out_fig_dir   = './figures/'
-#out_data_dir  = './data/li863mg_103955_04-ref/'
-#out_fig_dir   = './figures/li863mg_103955_04-ref/'
+#out_data_dir  = './data/'
+#out_fig_dir   = './figures/'
+out_data_dir  = './data/li863mg_103955_04-ref_neut_R0p6/'
+out_fig_dir   = './figures/li863mg_103955_04-ref_neut_R0p6/'
 output_prefix = 'ltx_gkeyll_'
 
 save_data          = False    #[ Indicate whether to save data in plot to HDF5 file.
-out_figure_file    = False     #[ Output a figure file?.
+out_figure_file    = True     #[ Output a figure file?.
 figure_file_format = '.png'    #[ Can be .png, .pdf, .ps, .eps, .svg.
 
 sim_name   = 'gk_ltx_iwl_2x2v_p1'      #[ Root name of files to process.
@@ -126,6 +127,7 @@ def getInterpDataComp(file, porder, basis, comp_in, **kwargs):
   #[   else: int
   maxwellian_comp_idx = {'den' : 0, 'upar' : 1, 'temp' : 2,}
   bimaxwellian_comp_idx = {'den' : 0, 'upar' : 1, 'tpar' : 2, 'tperp' : 3,}
+  lte_comp_idx = {'den' : 0, 'udrift' : 1, 'temp' : 2,}
 
   if 'mapc2p' not in kwargs:
     if isinstance(comp_in,int):
@@ -144,6 +146,10 @@ def getInterpDataComp(file, porder, basis, comp_in, **kwargs):
 
       elif 'MaxwellianMoments' in file:
         comp_idx = maxwellian_comp_idx[comp_in]
+        return np.squeeze(pgu.getInterpData(file, porder, basis, comp=comp_idx))
+    
+      elif 'LTEMoments' in file:
+        comp_idx = lte_comp_idx[comp_in]
         return np.squeeze(pgu.getInterpData(file, porder, basis, comp=comp_idx))
     
       else:
@@ -171,6 +177,11 @@ def getInterpDataComp(file, porder, basis, comp_in, **kwargs):
 
       elif 'MaxwellianMoments' in file:
         comp_idx = maxwellian_comp_idx[comp_in]
+        x_out, data_out = get_interp_data_c2p(file, porder, basis, comp_idx, kwargs['mapc2p'])
+        return x_out, data_out
+    
+      elif 'LTEMoments' in file:
+        comp_idx = lte_comp_idx[comp_in]
         x_out, data_out = get_interp_data_c2p(file, porder, basis, comp_idx, kwargs['mapc2p'])
         return x_out, data_out
     
@@ -712,22 +723,27 @@ if plot_src_int_mom_vs_t:
 if plot_vs_RZ:
   #[ Plot a variable on the R-Z midplane.
 
-  data_dir = '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-base_Deq4p0_bcxDenT0p625_bcxTempT1p6/'
+#  data_dir = '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-base_Deq4p0_bcxDenT0p625_bcxTempT1p6/'
+  data_dir = '/scratch/gpfs/manaurer/gkeyll/ltx/2d/li863mg_103955_04-ref_neut_Req0p6/'
 
-  quant      = 'ion_BiMaxwellianMoments' #[ Quantity to plot.
-  quant_comp = 'tperp'                    #[ Component in file (den, upar, tpar, tperp, temp, or an int).
-#  scale_fac  = 1.0               #[ Factor to multiply data by.
-  scale_fac  = lcu.mass_ion/lcu.eV               #[ Factor to multiply data by.
-#  zlabel     = r'$n_e(t=0.55~\mathrm{ms})$ (m$^{-3}$)'       #[ Label for y axis.
+#  quant      = 'ion_BiMaxwellianMoments' #[ Quantity to plot.
+  quant      = 'H0_LTEMoments' #[ Quantity to plot.
+  quant_comp = 'den'                    #[ Component in file (den, upar, tpar, tperp, temp, or an int).
+  scale_fac  = 1.0               #[ Factor to multiply data by.
+#  scale_fac  = lcu.mass_ion/lcu.eV               #[ Factor to multiply data by.
+  zlabel     = r'$n_n(t=0)$ (m$^{-3}$)'       #[ Label for y axis.
 #  zlabel     = r'$u_{\parallel i}(t=0.55~\mathrm{ms})$ (km/s)'       #[ Label for y axis.
 #  zlabel     = r'$T_{\parallel i}(t=0.55~\mathrm{ms})$ (eV)'       #[ Label for y axis.
-  zlabel     = r'$T_{\perp i}(t=0.55~\mathrm{ms})$ (eV)'       #[ Label for y axis.
-#  zlabel     = r'$T_{i}(t=0.7~\mathrm{ms})$ (eV)'       #[ Label for y axis.
-  frame      = 11                         #[ Frame number.
+#  zlabel     = r'$T_{\perp i}(t=0.55~\mathrm{ms})$ (eV)'       #[ Label for y axis.
+#  zlabel     = r'$T_{n}(t=0)$ (eV)'       #[ Label for y axis.
+  frame      = 0                         #[ Frame number.
 
-  fig_file_name_root = lcu.li863_prefix+'final_ion_tperp_RZ'
+  use_log_color_scale = True  # Set to False for a linear scale.
 
-  wall_file = '/global/homes/m/mana/perlmutter/gkeyll/code/gkyl-sims/ltx_gkeyll_xgc/experiment/LTXvessel.csv'
+  fig_file_name_root = lcu.li863_prefix+'init_H0_den_RZ_log'
+
+#  wall_file = '/global/homes/m/mana/perlmutter/gkeyll/code/gkyl-sims/ltx_gkeyll_xgc/experiment/LTXvessel.csv'
+  wall_file = '/home/manaurer/gkeyll/code/gkyl-sims/ltx/ltx_gkeyll_xgc/experiment/LTXvessel.csv'
 
   xlabel = r'$R$ (m)'
   ylabel = r'$Z$ (m)'
@@ -754,8 +770,13 @@ if plot_vs_RZ:
   spl00_y = xInt[1]
   spl00_z = data
 
+  if use_log_color_scale:
+    color_norm = colors.LogNorm(vmin=np.amin(data), vmax=np.amax(data))
+  else:
+    color_norm = colors.Normalize(vmin=np.amin(data), vmax=np.amax(data))
+
   hpla = list()
-  hpla.append(ax_h[0].pcolormesh(spl00_x, spl00_y, spl00_z, cmap='inferno'))
+  hpla.append(ax_h[0].pcolormesh(spl00_x, spl00_y, spl00_z, cmap='inferno', norm=color_norm))
 
   #[ Plot wall
   wall_data = np.loadtxt(open(wall_file),delimiter=',')
