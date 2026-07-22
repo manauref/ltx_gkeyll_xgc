@@ -25,18 +25,20 @@ plot_vs_x             = False  #[ A quantity at the outboard midplane.
 plot_nT_vs_x          = False  #[ Sensity and temperature profiles vs. x.
 plot_src_mom_vs_x     = False  #[ Source moments vs. x.
 plot_src_int_mom_vs_t = False  #[ Source integrated moments vs. t.
-plot_vs_RZ            = True  #[ A quantity at the R-Z midplane.
-plot_nT_vs_x_multisim = False  #[ Density and temperature profiles vs. x for multiple sims.
+plot_vs_RZ            = False  #[ A quantity at the R-Z midplane.
+plot_nT_vs_x_multisim = True  #[ Density and temperature profiles vs. x for multiple sims.
 plot_nu_RZ            = False  #[ Collision frequency on RZ plane.
 plot_nu_vs_x          = False  #[ Collision frequency vs. x.
 plot_int_mom_vs_t     = False   #[ Integrated moments vs. t.
 
-out_data_dir  = './data/li863mg_103955_04-ref/'
-out_fig_dir   = './figures/li863mg_103955_04-ref/'
+out_data_dir  = './data/'
+out_fig_dir   = './figures/'
+#out_data_dir  = './data/li863mg_103955_04-ref/'
+#out_fig_dir   = './figures/li863mg_103955_04-ref/'
 output_prefix = 'ltx_gkeyll_'
 
-save_data          = True    #[ Indicate whether to save data in plot to HDF5 file.
-out_figure_file    = True     #[ Output a figure file?.
+save_data          = False    #[ Indicate whether to save data in plot to HDF5 file.
+out_figure_file    = False     #[ Output a figure file?.
 figure_file_format = '.png'    #[ Can be .png, .pdf, .ps, .eps, .svg.
 
 sim_name   = 'gk_ltx_iwl_2x2v_p1'      #[ Root name of files to process.
@@ -370,14 +372,14 @@ if plot_nT_vs_x:
   x_axis_psi_N = True #[ Whether to put x-axis in rho_pol.
   plot_exp_data = True #[ Whether to plot experimental data.
   
-  frame = 11   #[ Frame number.
+  frame = 20   #[ Frame number.
   y_labels = [
 #    r'$n_e(\theta=0,t=0)$ (m$^{-3}$)',
 #    r'$T_e(\theta=0,t=0)$ (eV)',
 #    r'$T_i(\theta=0,t=0)$ (eV)',
-    r'$n_e(\theta=0,t=0.55~\mathrm{ms})$ (m$^{-3}$)',
-    r'$T_e(\theta=0,t=0.55~\mathrm{ms})$ (eV)',
-    r'$T_i(\theta=0,t=0.55~\mathrm{ms})$ (eV)',
+    r'$n_e(\theta=0,t=1~\mathrm{ms})$ (m$^{-3}$)',
+    r'$T_e(\theta=0,t=1~\mathrm{ms})$ (eV)',
+    r'$T_i(\theta=0,t=1~\mathrm{ms})$ (eV)',
   ]
 
   fig_file_name_root = lcu.li863_prefix+'final_den_temp'
@@ -454,10 +456,14 @@ if plot_nT_vs_x:
     spl01_line1_x = exp_elc_temp_x 
     spl01_line1_y = exp_elc_temp_y
 
-    ax_h[0].plot(spl00_line1_x, spl00_line1_y, linestyle=lcu.default_line_styles[1], color='grey')
-    ax_h[1].plot(spl01_line1_x, spl01_line1_y, linestyle=lcu.default_line_styles[1], color='grey')
+    hpla_exp, hplb_exp = list(), list()
+    hpla_exp.append(ax_h[0].plot(spl00_line1_x, spl00_line1_y, linestyle=lcu.default_line_styles[1], color='grey'))
+    hplb_exp.append(ax_h[1].plot(spl01_line1_x, spl01_line1_y, linestyle=lcu.default_line_styles[1], color='grey'))
+
+    ax_h[0].legend([hpla[0][0],hpla_exp[0][0]],['Gkeyll',r'LTX-$\beta$ TS'],fontsize=lcu.legend_font_size, frameon=False, loc='upper right')
   #end
 
+#  ax_h[0].set_ylim(0.0, 1.2e19)
   for i in range(len(ax_h)):
     ax_h[i].set_xlabel(xlabel, fontsize=lcu.xy_label_font_size, labelpad=0)
     ax_h[i].set_ylabel(y_labels[i], fontsize=lcu.xy_label_font_size)
@@ -790,28 +796,49 @@ if plot_nT_vs_x_multisim:
   #[ Plot density and temperature vs x for multimple sims:
 
   data_dir = [
-    '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-base/',
-    '/pscratch/sd/m/mana/gkeyll/ltx/2d/lipass_103795_03-base/',
+#    '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-base/',
+#    '/pscratch/sd/m/mana/gkeyll/ltx/2d/lipass_103795_03-base/',
+#
+#    '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-ref_Deq0p5/',
+#    '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-ref_Deq1p0/',
+#    '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-ref_Deq2p0/',
+#    '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-base_Deq4p0_bcxDenT0p625_bcxTempT1p6/',
+#    '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-ref_Deq8p0/',
+#    '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-ref_Deq12p0/',
+#
+    '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-base_Deq4p0_bcxDenT0p625_bcxTempT1p6/',
+    '/pscratch/sd/m/mana/gkeyll/ltx/2d/li863mg_103955_04-ref_neut_R0p6/',
   ]
   legend_strs = [
-    lcu.li863_legend,
-    lcu.lipass_legend,
+#    lcu.li863_legend,
+#    lcu.lipass_legend,
+#
+#    r'$D = 0.5$ m$^2$/s',
+#    r'$D = 1$ m$^2$/s',
+#    r'$D = 2$ m$^2$/s',
+#    r'$D = 4$ m$^2$/s',
+#    r'$D = 8$ m$^2$/s',
+#    r'$D = 12$ m$^2$/s',
+#
+    r'w/o H$^0$',
+    r'w/ H$^0$, R=0.6',
   ]
 
   x_axis_psi_N = True #[ Whether to put x-axis in rho_pol.
   plot_exp_data = False #[ Whether to plot experimental data.
   
-  frame = 20   #[ Frame number.
+  frame = 12   #[ Frame number.
   y_labels = [
 #    r'$n_e(\theta=0,t=0)$ (m$^{-3}$)',
 #    r'$T_e(\theta=0,t=0)$ (eV)',
 #    r'$T_i(\theta=0,t=0)$ (eV)',
-    r'$n_e(\theta=0,t=1~\mathrm{ms})$ (m$^{-3}$)',
-    r'$T_e(\theta=0,t=1~\mathrm{ms})$ (eV)',
-    r'$T_i(\theta=0,t=1~\mathrm{ms})$ (eV)',
+#
+    r'$n_e(\theta=0,t=0.6~\mathrm{ms})$ (m$^{-3}$)',
+    r'$T_e(\theta=0,t=0.6~\mathrm{ms})$ (eV)',
+    r'$T_i(\theta=0,t=0.6~\mathrm{ms})$ (eV)',
   ]
 
-  fig_file_name_root = lcu.liComp863pass_prefix+'final_den_temp'
+  fig_file_name_root = lcu.li863_prefix+'ref_final_den_temp_w_wo_neut'
 
   plotz = 0.0 #[ Computational z coordinate to plot at.
 
@@ -896,7 +923,8 @@ if plot_nT_vs_x_multisim:
       ax_h[1].plot(spl01_line1_x, spl01_line1_y, linestyle=lcu.default_line_styles[1], color='grey')
     #end
 
-  ax_h[0].legend([hpla[0][0],hpla[1][0]],legend_strs,fontsize=lcu.legend_font_size, frameon=False, loc='upper right')
+  plot_handles = [hpla[i][0] for i in range(len(hpla))]
+  ax_h[0].legend(plot_handles,legend_strs,fontsize=lcu.legend_font_size, frameon=False, loc='upper right')
   for i in range(len(ax_h)):
     ax_h[i].set_xlabel(xlabel, fontsize=lcu.xy_label_font_size, labelpad=0)
     ax_h[i].set_ylabel(y_labels[i], fontsize=lcu.xy_label_font_size)
